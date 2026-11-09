@@ -1,0 +1,259 @@
+/* Sizes are in vw so the layout scales the same on 720p, 1080p and 4K TVs. */
+:root {
+  --text: #f5f5f7;
+  --text-dim: rgba(245, 245, 247, 0.55);
+  --side-padding: 5.5vw;
+  --tile-width: 13.2vw;
+  --tile-gap: 0.82vw;
+  --tile-radius: 1.1vw;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #05060a;
+  color: var(--text);
+  font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'Samsung One', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wallpaper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(60vw 45vw at 12% 8%, rgba(88, 86, 214, 0.55), transparent 70%),
+    radial-gradient(55vw 40vw at 88% 18%, rgba(10, 132, 255, 0.4), transparent 70%),
+    radial-gradient(70vw 45vw at 50% 110%, rgba(191, 90, 242, 0.35), transparent 70%),
+    linear-gradient(180deg, #0b0d1a 0%, #05060a 100%);
+}
+
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 3.2vw var(--side-padding) 0;
+  text-align: right;
+  z-index: 2;
+}
+
+.clock-time {
+  font-size: 3.4vw;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.clock-date {
+  margin-top: 0.5vw;
+  font-size: 1.15vw;
+  color: var(--text-dim);
+}
+
+.screen {
+  display: none;
+  position: fixed;
+  left: 0;
+  width: 100%;
+  padding: 0 calc(var(--side-padding) - var(--tile-gap));
+  z-index: 1;
+}
+
+.screen.is-active {
+  display: block;
+}
+
+.screen[data-screen='home'] {
+  bottom: 4vw;
+}
+
+.screen[data-screen='all'] {
+  top: 3.2vw;
+  bottom: 0;
+}
+
+.screen-title {
+  margin: 0 var(--tile-gap) 1.2vw;
+  font-size: 2.4vw;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.grid-scroll {
+  position: absolute;
+  top: 6.4vw;
+  bottom: 0;
+  left: calc(var(--side-padding) - var(--tile-gap));
+  right: calc(var(--side-padding) - var(--tile-gap));
+  overflow: hidden;
+  padding: 1.4vw 0 3vw;
+  align-content: flex-start;
+}
+
+.tile {
+  width: var(--tile-width);
+  margin: 1.1vw var(--tile-gap) 0.6vw;
+  flex: none;
+}
+
+.tile-art {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  border-radius: var(--tile-radius);
+  overflow: hidden;
+  color: #ffffff;
+  box-shadow: 0 0.6vw 1.6vw rgba(0, 0, 0, 0.45);
+  transition:
+    transform 160ms ease-out,
+    box-shadow 160ms ease-out;
+}
+
+.tile-wordmark {
+  position: absolute;
+  top: 50%;
+  left: 8%;
+  width: 84%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: 1.65vw;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.tile-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tile-art.has-icon .tile-wordmark {
+  display: none;
+}
+
+.tile-label {
+  margin-top: 0.9vw;
+  text-align: center;
+  font-size: 1.05vw;
+  font-weight: 500;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 160ms ease-out;
+}
+
+.tile-id {
+  display: none;
+  text-align: center;
+  font-size: 0.7vw;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.show-ids .tile-id {
+  display: block;
+}
+
+.tile.is-focused .tile-art {
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 0.22vw rgba(255, 255, 255, 0.9),
+    0 1.6vw 3vw rgba(0, 0, 0, 0.6);
+}
+
+.tile.is-focused .tile-label {
+  color: var(--text);
+}
+
+/* Input tiles: plain dark card with a small plug bar above the name. */
+.tile-source .tile-wordmark {
+  font-size: 1.3vw;
+  font-weight: 600;
+}
+
+.tile-source .tile-art::before {
+  content: '';
+  position: absolute;
+  top: 24%;
+  left: 50%;
+  width: 16%;
+  height: 7%;
+  margin-left: -8%;
+  border-radius: 0.2vw;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* "All Apps" tile: a 3 x 2 block of dots. */
+.tile-all .tile-art::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.7vw;
+  height: 0.7vw;
+  margin: -1.15vw 0 0 -1.95vw;
+  border-radius: 0.2vw;
+  background: #ffffff;
+  box-shadow:
+    1.6vw 0 0 #ffffff,
+    3.2vw 0 0 #ffffff,
+    0 1.6vw 0 #ffffff,
+    1.6vw 1.6vw 0 #ffffff,
+    3.2vw 1.6vw 0 #ffffff;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 2vw;
+  max-width: 70vw;
+  padding: 0.8vw 1.6vw;
+  border-radius: 2vw;
+  background: rgba(30, 30, 32, 0.92);
+  font-size: 1.1vw;
+  transform: translate(-50%, 6vw);
+  opacity: 0;
+  transition:
+    transform 200ms ease-out,
+    opacity 200ms ease-out;
+  z-index: 5;
+}
+
+.toast.is-visible {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
+/* While an HDMI input is shown behind the page, get everything out of its way. */
+html.source-showing,
+html.source-showing body,
+html.source-showing .wallpaper {
+  background: transparent;
+}
+
+.source-showing .topbar,
+.source-showing main {
+  display: none;
+}
