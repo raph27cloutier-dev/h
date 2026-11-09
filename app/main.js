@@ -56,12 +56,21 @@
     return (error && (error.message || error.name)) || 'unknown error';
   }
 
+  // On a real TV that still reports "preview", show what the page can see so the cause can be found.
+  function previewNotice(wording) {
+    if (L.tv.looksLikeTv()) {
+      L.view.toast('TV functions not found. ' + L.tv.envInfo(), 20000);
+    } else {
+      L.view.toast('Preview: this would ' + wording + ' on the TV.');
+    }
+  }
+
   function openApp(tile) {
     L.tv
       .launchApp(tile.appId)
       .then(function (result) {
         if (result.preview) {
-          L.view.toast('Preview: this would open ' + tile.label + ' on the TV.');
+          previewNotice('open ' + tile.label);
         }
       })
       .catch(function (error) {
@@ -84,7 +93,7 @@
       .then(function (result) {
         update({ switchingSource: false });
         if (result.preview) {
-          L.view.toast('Preview: this would switch to ' + tile.label + ' on the TV.');
+          previewNotice('switch to ' + tile.label);
           return;
         }
         setSourceShowing(true);

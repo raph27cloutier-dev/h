@@ -103,7 +103,7 @@
 
   var toastTimer = null;
 
-  function toast(message) {
+  function toast(message, durationMs) {
     var node = document.getElementById('toast');
     node.textContent = message;
     node.classList.add('is-visible');
@@ -112,7 +112,7 @@
     }
     toastTimer = setTimeout(function () {
       node.classList.remove('is-visible');
-    }, 3500);
+    }, durationMs || 3500);
   }
 
   root.Launcher.view = {

@@ -6,8 +6,69 @@
   var TV_ANSWER_TIMEOUT_MS = 5000;
   var NO_ANSWER = 'The TV did not answer in time.';
 
+  /** Reads `getter()`, returning undefined if the browser refuses (cross-origin frames). */
+  function safely(getter) {
+    try {
+      return getter();
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  /**
+   * The TV's `tizen` object. Inside TizenBrew the page may sit in a frame, so the
+   * parent and top windows are checked too. Returns null when none has it.
+   */
+  function tizenApi() {
+    var windows = [
+      root,
+      safely(function () {
+        return root.parent;
+      }),
+      safely(function () {
+        return root.top;
+      })
+    ];
+    for (var i = 0; i < windows.length; i += 1) {
+      var found = safely(function () {
+        return windows[i] && windows[i].tizen && windows[i].tizen.application ? windows[i].tizen : null;
+      });
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  }
+
   function onTv() {
-    return typeof root.tizen !== 'undefined' && Boolean(root.tizen.application);
+    return tizenApi() !== null;
+  }
+
+  /** True when the browser says it is a Samsung TV, even if the TV functions are missing. */
+  function looksLikeTv() {
+    return /Tizen|SMART-TV|Samsung/i.test(String(root.navigator && root.navigator.userAgent));
+  }
+
+  /** A short text describing what the page can see, to help find why the TV functions are missing. */
+  function envInfo() {
+    var tizenKeys = safely(function () {
+      return root.tizen ? Object.keys(root.tizen).slice(0, 10).join(',') : '';
+    });
+    var inFrame = safely(function () {
+      return root.parent !== root;
+    });
+    var agent = String(root.navigator && root.navigator.userAgent).match(/Tizen [0-9.]+|Chrome\/[0-9.]+/g);
+    return [
+      'tizen=' + typeof root.tizen + (tizenKeys ? '(' + tizenKeys + ')' : ''),
+      'webapis=' + typeof root.webapis,
+      'frame=' + (inFrame ? 'yes' : 'no'),
+      'parent.tizen=' +
+        typeof safely(function () {
+          return root.parent.tizen;
+        }),
+      'url=' + String(root.location && root.location.href).slice(0, 60),
+      'ua=' + (agent ? agent.join(' ') : '?')
+    ].join(' | ');
   }
 
   /**
@@ -52,21 +113,23 @@
 
   /** Resolves with the TV's raw installed-app list (unvalidated). */
   function listInstalled(catalog) {
-    if (!onTv()) {
+    var api = tizenApi();
+    if (!api) {
       return Promise.resolve(previewApps(catalog));
     }
     return askTv(function (resolve, reject) {
-      root.tizen.application.getAppsInfo(resolve, reject);
+      api.application.getAppsInfo(resolve, reject);
     });
   }
 
   /** Resolves with { preview: true } on a computer, { preview: false } once the TV accepted the launch. */
   function launchApp(appId) {
-    if (!onTv()) {
+    var api = tizenApi();
+    if (!api) {
       return Promise.resolve({ preview: true });
     }
     return askTv(function (resolve, reject) {
-      root.tizen.application.launch(
+      api.application.launch(
         appId,
         function () {
           resolve({ preview: false });
@@ -95,14 +158,15 @@
    * behind the page. Rejects with a readable Error when the TV does not allow it.
    */
   function showSource(wanted) {
-    if (!onTv()) {
+    var api = tizenApi();
+    if (!api) {
       return Promise.resolve({ preview: true });
     }
-    if (!root.tizen.tvwindow || !root.tizen.systeminfo) {
+    if (!api.tvwindow || !api.systeminfo) {
       return Promise.reject(new Error('This TV does not let apps switch inputs.'));
     }
     return askTv(function (resolve, reject) {
-      root.tizen.systeminfo.getPropertyValue(
+      api.systeminfo.getPropertyValue(
         'VIDEOSOURCE',
         function (videoSources) {
           var source = findSource(videoSources, wanted);
@@ -110,10 +174,10 @@
             reject(new Error('Nothing is connected to that input.'));
             return;
           }
-          root.tizen.tvwindow.setSource(
+          api.tvwindow.setSource(
             source,
             function () {
-              root.tizen.tvwindow.show(
+              api.tvwindow.show(
                 function () {
                   resolve({ preview: false });
                 },
@@ -131,17 +195,20 @@
   }
 
   function hideSource() {
-    if (!onTv() || !root.tizen.tvwindow) {
+    var api = tizenApi();
+    if (!api || !api.tvwindow) {
       return Promise.resolve();
     }
     return askTv(function (resolve, reject) {
-      root.tizen.tvwindow.hide(resolve, reject, MAIN_WINDOW);
+      api.tvwindow.hide(resolve, reject, MAIN_WINDOW);
     });
   }
 
   root.Launcher = root.Launcher || {};
   root.Launcher.tv = {
     onTv: onTv,
+    looksLikeTv: looksLikeTv,
+    envInfo: envInfo,
     listInstalled: listInstalled,
     launchApp: launchApp,
     showSource: showSource,
