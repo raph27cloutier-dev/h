@@ -177,8 +177,10 @@
           ? 'TV app list: ' + installed.length + ' apps'
           : 'TV gave an empty app list: using the built-in list'
       );
+    } else if (L.tv.looksLikeTv()) {
+      setStatus('Built-in app list (opens apps through the TV network service)');
     } else {
-      setStatus('Built-in list (the TV did not share its apps)');
+      setStatus('Preview: built-in app list');
     }
     var allTiles = L.apps.buildTiles(installed, L.config.catalog);
     var homeTiles = L.apps
@@ -208,7 +210,6 @@
       .catch(function (error) {
         console.error('Could not read the installed apps', error);
         showTiles([], 'builtin');
-        L.view.toast('The TV did not share its app list (' + describe(error) + ').', 12000);
       });
   }
 

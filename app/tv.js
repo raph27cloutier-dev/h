@@ -122,11 +122,47 @@
     });
   }
 
+  function controlHosts() {
+    var config = root.Launcher && root.Launcher.config;
+    return (config && config.controlHosts) || ['127.0.0.1'];
+  }
+
+  /**
+   * Opens an app through the TV's own network service (port 8001), which is how the
+   * launcher works inside TizenBrew where the `tizen` functions do not exist.
+   * The TV does not allow the page to read the answer, so a request that goes
+   * through counts as success. Tries each address in config.controlHosts in turn.
+   */
+  function launchOverNetwork(appId) {
+    var hosts = controlHosts();
+    var lastError = new Error('Could not reach the TV control service.');
+
+    function tryHost(index) {
+      if (index >= hosts.length) {
+        return Promise.reject(lastError);
+      }
+      var url = 'http://' + hosts[index] + ':8001/api/v2/applications/' + encodeURIComponent(appId);
+      return askTv(function (resolve, reject) {
+        root.fetch(url, { method: 'POST', mode: 'no-cors' }).then(resolve, reject);
+      }).catch(function (error) {
+        lastError = error;
+        return tryHost(index + 1);
+      });
+    }
+
+    return tryHost(0);
+  }
+
   /** Resolves with { preview: true } on a computer, { preview: false } once the TV accepted the launch. */
   function launchApp(appId) {
     var api = tizenApi();
     if (!api) {
-      return Promise.resolve({ preview: true });
+      if (!looksLikeTv()) {
+        return Promise.resolve({ preview: true });
+      }
+      return launchOverNetwork(appId).then(function () {
+        return { preview: false };
+      });
     }
     return askTv(function (resolve, reject) {
       api.application.launch(
@@ -160,6 +196,9 @@
   function showSource(wanted) {
     var api = tizenApi();
     if (!api) {
+      if (looksLikeTv()) {
+        return Promise.reject(new Error('switching inputs is not available inside TizenBrew yet'));
+      }
       return Promise.resolve({ preview: true });
     }
     if (!api.tvwindow || !api.systeminfo) {

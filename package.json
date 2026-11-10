@@ -5,7 +5,7 @@
   "private": true,
   "packageType": "app",
   "appName": "My Home",
-  "appPath": "app/home-v4.html",
+  "appPath": "app/home-v5.html",
   "keys": [],
   "scripts": {
     "test": "node --test tests/*.test.js",

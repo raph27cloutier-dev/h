@@ -13,6 +13,11 @@
     // Tiles per row.
     gridColumns: 6,
 
+    // Where the TV's own control service is reached from the launcher, tried in order.
+    // 127.0.0.1 is the TV itself; the second is this TV's address on your home network
+    // (change it if your router gives the TV a different one).
+    controlHosts: ['127.0.0.1', '192.168.2.16'],
+
     // Shows which app list is used and each app's id under its tile. Set to false when everything works.
     showDebug: true,
 
@@ -29,8 +34,8 @@
 
     // Known apps. An installed app whose name contains `match` gets this label and colour.
     // More specific names must come before general ones (YouTube Kids before YouTube).
-    // `fallbackId` is only used if the TV refuses to give its app list; these ids are
-    // best guesses and have not been checked on your TV.
+    // `fallbackId` is the id the TV opens. Verified on your Q80T: Netflix, YouTube, Disney+,
+    // Prime Video, Spotify, Apple TV. Crave and Tou.tv have no id yet, so they are hidden.
     catalog: [
       { key: 'netflix', label: 'Netflix', match: 'netflix', color: '#141414', text: '#e50914', fallbackId: '3201907018807' },
       { key: 'youtubekids', label: 'YouTube Kids', match: 'youtube kids', color: '#ffffff', text: '#ff0000' },
@@ -46,7 +51,7 @@
       { key: 'spotify', label: 'Spotify', match: 'spotify', color: '#121212', text: '#1ed760', fallbackId: '3201606009684' },
       { key: 'plex', label: 'Plex', match: 'plex', color: '#1f2326', text: '#e5a00d' },
       { key: 'twitch', label: 'Twitch', match: 'twitch', color: '#9146ff', text: '#ffffff' },
-      { key: 'browser', label: 'Internet', match: 'internet', color: '#2c2c2e', text: '#ffffff', fallbackId: 'org.tizen.browser' }
+      { key: 'browser', label: 'Internet', match: 'internet', color: '#2c2c2e', text: '#ffffff' }
     ]
   };
 })(typeof window !== 'undefined' ? window : this);
