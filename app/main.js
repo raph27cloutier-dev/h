@@ -97,6 +97,10 @@
           previewNotice('switch to ' + tile.label);
           return;
         }
+        if (result.handledByTv) {
+          // The TV switched input itself; nothing to show behind the page.
+          return;
+        }
         setSourceShowing(true);
       })
       .catch(function (error) {
@@ -171,7 +175,7 @@
 
   function showTiles(rawInstalled, source) {
     var installed = L.apps.normalizeInstalled(rawInstalled);
-    if (source === 'tv') {
+    if (source === 'tv' || source === 'remote') {
       setStatus(
         installed.length > 0
           ? 'TV app list: ' + installed.length + ' apps'
@@ -192,6 +196,23 @@
     goTo('home');
   }
 
+  // Inside TizenBrew: ask the TV's remote-control service for the real app list.
+  // The first time, the TV asks whether to allow "My Home".
+  function loadRealAppsOverRemote() {
+    L.view.toast('If the TV asks to allow "My Home", choose Allow.', 12000);
+    L.tv
+      .installedOverRemote()
+      .then(function (raw) {
+        if (L.apps.normalizeInstalled(raw).length > 0) {
+          showTiles(raw, 'remote');
+        }
+      })
+      .catch(function (error) {
+        console.error('Real app list unavailable', error);
+        setStatus('Built-in app list (real list unavailable: ' + describe(error) + ')');
+      });
+  }
+
   function start() {
     L.view.updateClock(L.config.locale);
     setInterval(function () {
@@ -206,6 +227,9 @@
       .listInstalled(L.config.catalog)
       .then(function (raw) {
         showTiles(raw, L.tv.onTv() ? 'tv' : 'builtin');
+        if (!L.tv.onTv() && L.tv.looksLikeTv()) {
+          loadRealAppsOverRemote();
+        }
       })
       .catch(function (error) {
         console.error('Could not read the installed apps', error);

@@ -190,6 +190,18 @@
     });
   }
 
+  /** Addresses for the remote-control service: the TV's real address first. */
+  function remoteHosts() {
+    return discoverTvIp().then(uniqueHosts);
+  }
+
+  /** The TV's real installed-app list, read through the remote-control service. */
+  function installedOverRemote() {
+    return remoteHosts().then(function (hosts) {
+      return root.Launcher.remote.installedApps(hosts);
+    });
+  }
+
   /**
    * Opens an app through the TV's own network service (port 8001), which is how the
    * launcher works inside TizenBrew where the `tizen` functions do not exist.
@@ -227,9 +239,24 @@
       if (!looksLikeTv()) {
         return Promise.resolve({ preview: true });
       }
-      return launchOverNetwork(appId).then(function (host) {
-        return { preview: false, via: host };
-      });
+      // The TV may refuse the quick route (HTTP 401 from its own browser); then use the
+      // remote-control service, which asks the person to allow "My Home" once.
+      return launchOverNetwork(appId)
+        .then(function (host) {
+          return { preview: false, via: host };
+        })
+        .catch(function (restError) {
+          return remoteHosts()
+            .then(function (hosts) {
+              return root.Launcher.remote.launch(hosts, appId);
+            })
+            .then(function () {
+              return { preview: false, via: 'remote' };
+            })
+            .catch(function (remoteError) {
+              throw new Error(restError.message + ' / remote: ' + remoteError.message);
+            });
+        });
     }
     return askTv(function (resolve, reject) {
       api.application.launch(
@@ -263,10 +290,17 @@
   function showSource(wanted) {
     var api = tizenApi();
     if (!api) {
-      if (looksLikeTv()) {
-        return Promise.reject(new Error('switching inputs is not available inside TizenBrew yet'));
+      if (!looksLikeTv()) {
+        return Promise.resolve({ preview: true });
       }
-      return Promise.resolve({ preview: true });
+      // Inside TizenBrew: press the TV's own HDMI key through the remote-control service.
+      return remoteHosts()
+        .then(function (hosts) {
+          return root.Launcher.remote.pressKey(hosts, 'KEY_HDMI' + wanted.number);
+        })
+        .then(function () {
+          return { preview: false, handledByTv: true };
+        });
     }
     if (!api.tvwindow || !api.systeminfo) {
       return Promise.reject(new Error('This TV does not let apps switch inputs.'));
@@ -338,6 +372,7 @@
     leaveApp: leaveApp,
     onTv: onTv,
     looksLikeTv: looksLikeTv,
+    installedOverRemote: installedOverRemote,
     envInfo: envInfo,
     listInstalled: listInstalled,
     launchApp: launchApp,
