@@ -204,8 +204,32 @@
     });
   }
 
+  /**
+   * Leaves the launcher: goes back to TizenBrew if the page was opened from it,
+   * otherwise (or if nothing happens) closes the whole app.
+   */
+  function leaveApp() {
+    var api = tizenApi();
+    if (root.history && root.history.length > 1) {
+      root.history.back();
+    }
+    setTimeout(function () {
+      // Still here after going back: close the app instead.
+      try {
+        if (api) {
+          api.application.getCurrentApplication().exit();
+        } else if (root.close) {
+          root.close();
+        }
+      } catch (error) {
+        console.error('Could not close the app', error);
+      }
+    }, 600);
+  }
+
   root.Launcher = root.Launcher || {};
   root.Launcher.tv = {
+    leaveApp: leaveApp,
     onTv: onTv,
     looksLikeTv: looksLikeTv,
     envInfo: envInfo,

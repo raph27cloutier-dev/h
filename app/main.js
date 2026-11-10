@@ -156,6 +156,11 @@
     if (!action) {
       return;
     }
+    // Back on the home screen must always get you out of the launcher.
+    if (action === 'back' && state.screen === 'home' && !state.sourceShowing) {
+      L.tv.leaveApp();
+      return;
+    }
     event.preventDefault();
     handleAction(action);
   }
