@@ -11,7 +11,10 @@
     10009: 'back', // Samsung remote Back
     27: 'back', // Escape (computer preview)
     8: 'back', // Backspace (computer preview)
-    68: 'debug' // D key (computer preview / USB keyboard)
+    68: 'debug', // D key (computer preview / USB keyboard)
+    10252: 'control', // Samsung remote Play/Pause: opens Control Center
+    403: 'control', // Red colour key (on-screen number pad)
+    67: 'control' // C key (computer preview)
   };
 
   function actionForKey(keyCode) {

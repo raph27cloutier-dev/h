@@ -5,6 +5,25 @@
   var L = root.Launcher;
   var CLOCK_REFRESH_MS = 30000;
   var ALL_APPS_TILE = { key: 'all-apps', label: 'All Apps', type: 'all', color: '#2c2c2e' };
+  var RECENT_STORAGE_KEY = 'myhome.recent';
+  var RECENT_MAX = 6;
+
+  function loadRecent() {
+    try {
+      return L.recent.parseRecent(root.localStorage.getItem(RECENT_STORAGE_KEY));
+    } catch (error) {
+      console.error('Could not read recent apps', error);
+      return [];
+    }
+  }
+
+  function saveRecent(keys) {
+    try {
+      root.localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(keys));
+    } catch (error) {
+      console.error('Could not save recent apps', error);
+    }
+  }
 
   // Replaced, never modified in place.
   var state = {
@@ -13,7 +32,11 @@
     allTiles: [],
     focus: { home: { row: 0, col: 0 }, all: 0 },
     sourceShowing: false,
-    switchingSource: false
+    switchingSource: false,
+    pillFocused: false,
+    recent: loadRecent(),
+    installed: [],
+    homeFocusPlaced: false
   };
 
   function setSourceShowing(showing) {
@@ -53,20 +76,36 @@
     return row ? row.tiles[state.focus.home.col] : undefined;
   }
 
-  function applyFocus() {
+  function applyFocus(direction) {
     if (state.screen === 'all') {
-      L.view.setFocus(allGrid(), state.focus.all);
+      L.view.setFocus(allGrid(), state.focus.all, direction);
       return;
     }
-    L.view.setRowFocus(homeElement(), state.focus.home);
+    L.view.setRowFocus(homeElement(), state.focus.home, direction);
     L.view.updateHero(focusedTile());
   }
 
-  function setFocus(screen, value) {
+  function samePosition(a, b) {
+    return typeof a === 'object' ? a.row === b.row && a.col === b.col : a === b;
+  }
+
+  function setFocus(screen, value, direction) {
+    if (samePosition(state.focus[screen], value)) {
+      return false;
+    }
     var focus = { home: state.focus.home, all: state.focus.all };
     focus[screen] = value;
     update({ focus: focus });
-    applyFocus();
+    applyFocus(direction);
+    L.sound.move();
+    return true;
+  }
+
+  function setPillFocused(focused) {
+    update({ pillFocused: focused });
+    L.view.setPillFocus(focused);
+    L.view.setRowFocus(homeElement(), focused ? { row: -1, col: -1 } : state.focus.home, focused ? '' : 'down');
+    L.sound.move();
   }
 
   function goTo(screen) {
@@ -88,7 +127,14 @@
     }
   }
 
+  function rememberOpened(tile) {
+    var recent = L.recent.addRecent(state.recent, tile.key, RECENT_MAX);
+    update({ recent: recent });
+    saveRecent(recent);
+  }
+
   function openApp(tile) {
+    rememberOpened(tile);
     L.view.toast('Opening ' + tile.label + ' (' + tile.appId + ')');
     L.tv
       .launchApp(tile.appId)
@@ -144,6 +190,7 @@
     if (!tile) {
       return;
     }
+    L.sound.select();
     if (tile.type === 'all') {
       goTo('all');
     } else if (tile.type === 'source') {
@@ -164,24 +211,60 @@
       return;
     }
     var screen = state.screen;
+    if (action === 'control') {
+      openControl();
+      return;
+    }
+    if (screen === 'home' && state.pillFocused) {
+      if (action === 'select') {
+        openControl();
+      } else if (action === 'down') {
+        setPillFocused(false);
+      }
+      return;
+    }
     if (action === 'select') {
       select(focusedTile());
     } else if (action === 'back') {
       if (screen === 'all') {
+        L.sound.back();
         goTo('home');
       }
     } else if (action === 'debug') {
       document.body.classList.toggle('show-ids');
     } else if (screen === 'home') {
-      setFocus('home', L.nav.moveInRows(state.focus.home, action, rowLengths()));
+      var moved = setFocus('home', L.nav.moveInRows(state.focus.home, action, rowLengths()), action);
+      if (!moved && action === 'up') {
+        setPillFocused(true);
+      }
     } else {
-      setFocus('all', L.nav.move(state.focus.all, action, state.allTiles.length, L.config.gridColumns));
+      setFocus('all', L.nav.move(state.focus.all, action, state.allTiles.length, L.config.gridColumns), action);
     }
   }
 
   function onKeyDown(event) {
+    // Any button closes the screensaver, and does nothing else.
+    if (L.screensaver.wake()) {
+      event.preventDefault();
+      return;
+    }
     var action = L.nav.actionForKey(event.keyCode);
     if (!action) {
+      return;
+    }
+    if (L.control.isOpen()) {
+      event.preventDefault();
+      var result = L.control.handle(action);
+      if (result === 'moved') {
+        L.sound.move();
+      } else if (result === 'closed') {
+        L.sound.back();
+      }
+      return;
+    }
+    if (action === 'back' && state.pillFocused) {
+      event.preventDefault();
+      setPillFocused(false);
       return;
     }
     // Back on the home screen must always get you out of the launcher.
@@ -210,21 +293,117 @@
     } else {
       setStatus('Preview: built-in app list');
     }
-    var allTiles = L.apps.buildTiles(installed, L.config.catalog);
-    var homeRows = [
-      { title: 'Apps', tiles: L.apps.pickFavourites(allTiles, L.config.favourites).concat([ALL_APPS_TILE]) },
-      { title: 'Inputs', tiles: L.apps.sourceTiles(L.config.sources) }
+    update({ installed: installed });
+    renderHome();
+  }
+
+  function buildHomeRows(allTiles) {
+    var recentTiles = L.config.showRecent === false ? [] : L.recent.recentTiles(state.recent, allTiles);
+    return [
+      { title: 'Recent', size: 'small', tiles: recentTiles },
+      { title: 'Apps', size: 'large', tiles: L.apps.pickFavourites(allTiles, L.config.favourites).concat([ALL_APPS_TILE]) },
+      { title: 'Inputs', size: 'small', tiles: L.apps.sourceTiles(L.config.sources) }
     ].filter(function (row) {
       return row.tiles.length > 0;
     });
-    update({ allTiles: allTiles, homeRows: homeRows });
+  }
+
+  // An app can be in two rows (Recent and Apps): look in the row it was in first.
+  function findTile(rows, key, rowTitle) {
+    var ordered = rows
+      .map(function (row, index) {
+        return index;
+      })
+      .sort(function (a, b) {
+        return (rows[a].title === rowTitle ? 0 : 1) - (rows[b].title === rowTitle ? 0 : 1) || a - b;
+      });
+    for (var i = 0; i < ordered.length; i += 1) {
+      var tiles = rows[ordered[i]].tiles;
+      for (var c = 0; c < tiles.length; c += 1) {
+        if (tiles[c].key === key) {
+          return { row: ordered[i], col: c };
+        }
+      }
+    }
+    return null;
+  }
+
+  function appsRowIndex(rows) {
+    for (var r = 0; r < rows.length; r += 1) {
+      if (rows[r].title === 'Apps') {
+        return r;
+      }
+    }
+    return 0;
+  }
+
+  /** Rebuilds the rows; the same tile stays focused even when a row is added above it. */
+  function renderHome() {
+    var previous = focusedTile();
+    var previousRow = state.homeRows[state.focus.home.row];
+    var allTiles = L.apps.buildTiles(state.installed, L.config.catalog);
+    var homeRows = buildHomeRows(allTiles);
+    var kept = previous && state.screen === 'home' ? findTile(homeRows, previous.key, previousRow && previousRow.title) : null;
+    var start = state.homeFocusPlaced ? state.focus.home : { row: appsRowIndex(homeRows), col: 0 };
+    update({ allTiles: allTiles, homeRows: homeRows, homeFocusPlaced: true });
     L.view.renderRows(homeElement(), homeRows);
     L.view.renderGrid(allGrid(), allTiles);
     // Keep the focus valid when the list changes (the real list can arrive later).
-    var home = L.nav.moveInRows(state.focus.home, 'stay', rowLengths());
+    var home = L.nav.moveInRows(kept || start, 'stay', rowLengths());
     var all = Math.min(state.focus.all, Math.max(allTiles.length - 1, 0));
     update({ focus: { home: home, all: all } });
     goTo(state.screen);
+  }
+
+  function runTvKey(key, wording) {
+    L.tv
+      .pressTvKey(key)
+      .then(function (result) {
+        if (result.preview) {
+          previewNotice(wording);
+        }
+      })
+      .catch(function (error) {
+        console.error('TV key failed', key, error);
+        L.view.toast('Could not ' + wording + ' (' + describe(error) + ').', 15000);
+      });
+  }
+
+  function controlItems() {
+    var inputs = L.apps.sourceTiles(L.config.sources).map(function (tile, index) {
+      return {
+        heading: index === 0 ? 'Inputs' : '',
+        label: tile.label,
+        icon: 'input',
+        run: function () {
+          openSource(tile);
+        }
+      };
+    });
+    return [
+      { heading: 'TV', label: 'Turn Off TV', icon: 'power', run: function () { runTvKey('KEY_POWER', 'turn off the TV'); } },
+      { label: 'Mute', icon: 'mute', run: function () { runTvKey('KEY_MUTE', 'mute the TV'); } }
+    ]
+      .concat(inputs)
+      .concat([
+        { heading: 'My Home', label: 'Screen Saver', icon: 'saver', run: function () { L.screensaver.start(); } },
+        { label: 'Reload My Home', icon: 'reload', run: function () { root.location.reload(); } }
+      ]);
+  }
+
+  function openControl() {
+    if (state.pillFocused) {
+      setPillFocused(false);
+    }
+    L.sound.select();
+    L.control.show(controlItems());
+  }
+
+  // Back from an app: the Recent row now includes it.
+  function onVisibilityChange() {
+    if (!document.hidden && state.homeRows.length > 0) {
+      renderHome();
+    }
   }
 
   // Inside TizenBrew: ask the TV's remote-control service for the real app list.
@@ -252,6 +431,10 @@
       L.view.updateClock(L.config.locale);
     }, CLOCK_REFRESH_MS);
     document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    L.screensaver.init(function () {
+      return !state.sourceShowing && !L.control.isOpen();
+    });
     if (L.config.showDebug) {
       document.body.classList.add('show-ids');
     }

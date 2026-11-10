@@ -334,6 +334,23 @@
     });
   }
 
+  /**
+   * Presses one of the TV's own remote keys (KEY_POWER, KEY_MUTE...) through its
+   * remote-control service. Resolves {preview:true} on a computer.
+   */
+  function pressTvKey(key) {
+    if (!looksLikeTv()) {
+      return Promise.resolve({ preview: true });
+    }
+    return remoteHosts()
+      .then(function (hosts) {
+        return root.Launcher.remote.pressKey(hosts, key);
+      })
+      .then(function () {
+        return { preview: false };
+      });
+  }
+
   function hideSource() {
     var api = tizenApi();
     if (!api || !api.tvwindow) {
@@ -370,6 +387,7 @@
   root.Launcher = root.Launcher || {};
   root.Launcher.tv = {
     leaveApp: leaveApp,
+    pressTvKey: pressTvKey,
     onTv: onTv,
     looksLikeTv: looksLikeTv,
     installedOverRemote: installedOverRemote,

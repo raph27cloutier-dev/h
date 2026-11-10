@@ -55,6 +55,9 @@ test('maps remote and keyboard key codes to actions', () => {
   assert.equal(nav.actionForKey(10009), 'back');
   assert.equal(nav.actionForKey(27), 'back');
   assert.equal(nav.actionForKey(68), 'debug');
+  assert.equal(nav.actionForKey(10252), 'control');
+  assert.equal(nav.actionForKey(403), 'control');
+  assert.equal(nav.actionForKey(67), 'control');
   assert.equal(nav.actionForKey(999), null);
 });
 

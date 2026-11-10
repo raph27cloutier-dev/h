@@ -10,6 +10,9 @@ An Apple TV-style home screen for Samsung (Tizen) TVs: your favourite apps, your
 | Opening apps, reading the TV's installed-app list | Written, **not yet tested on a real TV** |
 | HDMI input tiles | Experimental, **not yet tested on a real TV**; may be refused by the TV |
 | Taking over the remote's Home button | Not included |
+| Recent row, tile tilt, click sounds | Tested on a computer |
+| Control Center (Play/Pause key, or Up from the top row): Turn Off, Mute, inputs, screensaver | Panel tested on a computer; TV keys need the one-time Allow |
+| Aerial screensaver (Apple's videos, after `screensaverMinutes`) | Tested on a computer; playback on the TV not yet checked |
 
 ## Try it on your computer
 
@@ -17,7 +20,7 @@ An Apple TV-style home screen for Samsung (Tizen) TVs: your favourite apps, your
 npm run preview
 ```
 
-Then open <http://localhost:4173/home-v11.html>. Arrow keys move, Enter selects, Escape goes back, D shows each app's id. Nothing really opens in preview: a message says what the TV would do.
+Then open <http://localhost:4173/home-v12.html>. Arrow keys move, Enter selects, Escape goes back, D shows each app's id. Nothing really opens in preview: a message says what the TV would do.
 
 ## Change what is on the home screen
 

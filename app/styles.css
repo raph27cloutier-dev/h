@@ -60,7 +60,7 @@ body {
 .hero-text {
   position: absolute;
   left: var(--side);
-  top: 12.5vw;
+  top: 8.5vw;
   max-width: 60vw;
   transform: translateY(1vw);
   transition: transform 600ms var(--ease);
@@ -71,7 +71,7 @@ body {
 }
 
 .hero-title {
-  font-size: 6.4vw;
+  font-size: 5.2vw;
   font-weight: 800;
   letter-spacing: -0.035em;
   line-height: 1;
@@ -79,7 +79,7 @@ body {
 }
 
 .hero-subtitle {
-  margin-top: 1.2vw;
+  margin-top: 0.9vw;
   font-size: 1.45vw;
   font-weight: 500;
   color: var(--text-dim);
@@ -174,7 +174,7 @@ body[data-screen='all'] .greeting {
 }
 
 .screen[data-screen='home'] {
-  bottom: 2.2vw;
+  bottom: 1.4vw;
 }
 
 .screen[data-screen='all'] {
@@ -200,7 +200,7 @@ body[data-screen='all'] .greeting {
 
 .row-viewport {
   overflow: hidden;
-  padding: 1.8vw 0 1.4vw;
+  padding: 1.3vw 0 0.5vw;
 }
 
 .row-track {
@@ -215,13 +215,24 @@ body[data-screen='all'] .greeting {
   margin: 0 var(--tile-space) 0 0;
 }
 
-.row + .row .tile {
+.row-small .tile {
   width: var(--tile-w-small);
 }
 
 /* tvOS shows the name only under the focused tile. */
 .row .tile-label {
   opacity: 0;
+}
+
+/* Small rows keep their name space only for the focused row, so three rows fit. */
+.row-small .tile-label {
+  height: 0;
+  margin-top: 0;
+}
+
+.row-small.is-active .tile-label {
+  height: auto;
+  margin-top: 0.9vw;
 }
 
 .row .tile.is-focused .tile-label {
@@ -273,7 +284,7 @@ body[data-screen='all'] .greeting {
   line-height: 1.05;
 }
 
-.row + .row .tile-wordmark {
+.row-small .tile-wordmark {
   font-size: 1.3vw;
 }
 
@@ -304,8 +315,8 @@ body[data-screen='all'] .greeting {
 /* Banner logo replaces the big name when it loads. */
 .hero-logo {
   display: block;
-  max-width: 34vw;
-  max-height: 8.5vw;
+  max-width: 30vw;
+  max-height: 6.5vw;
   filter: drop-shadow(0 0.4vw 1.6vw rgba(0, 0, 0, 0.5));
 }
 
@@ -337,15 +348,21 @@ body[data-screen='all'] .greeting {
   }
 }
 
+.tile {
+  -webkit-perspective: 60vw;
+  perspective: 60vw;
+}
+
 .tile.is-focused .tile-art {
   transform: translateY(-0.5vw) scale(1.12);
+  animation: sway 7s ease-in-out 600ms infinite;
   box-shadow:
     0 0 0 0.18vw rgba(255, 255, 255, 0.85),
     0 1.8vw 3.2vw rgba(0, 0, 0, 0.65);
 }
 
 .tile-label {
-  margin-top: 1.2vw;
+  margin-top: 0.9vw;
   text-align: center;
   font-size: 1.1vw;
   font-weight: 600;
@@ -482,4 +499,255 @@ html.source-showing .hero-layer {
 .source-showing .topbar,
 .source-showing main {
   display: none;
+}
+
+/* ---------- Tilt (tvOS parallax feel) ---------- */
+
+@keyframes sway {
+  0%, 100% { transform: translateY(-0.5vw) scale(1.12) rotateX(0deg) rotateY(0deg); }
+  25% { transform: translateY(-0.5vw) scale(1.12) rotateX(1.5deg) rotateY(-2deg); }
+  75% { transform: translateY(-0.5vw) scale(1.12) rotateX(-1.5deg) rotateY(2deg); }
+}
+
+@keyframes nudge-right {
+  0% { transform: translateY(-0.5vw) scale(1.1) rotateY(9deg); }
+  100% { transform: translateY(-0.5vw) scale(1.12) rotateY(0deg); }
+}
+
+@keyframes nudge-left {
+  0% { transform: translateY(-0.5vw) scale(1.1) rotateY(-9deg); }
+  100% { transform: translateY(-0.5vw) scale(1.12) rotateY(0deg); }
+}
+
+@keyframes nudge-up {
+  0% { transform: translateY(-0.5vw) scale(1.1) rotateX(-9deg); }
+  100% { transform: translateY(-0.5vw) scale(1.12) rotateX(0deg); }
+}
+
+@keyframes nudge-down {
+  0% { transform: translateY(-0.5vw) scale(1.1) rotateX(9deg); }
+  100% { transform: translateY(-0.5vw) scale(1.12) rotateX(0deg); }
+}
+
+.tile.is-focused.nudge-right .tile-art {
+  animation: nudge-right 420ms var(--ease), sway 7s ease-in-out 600ms infinite;
+}
+
+.tile.is-focused.nudge-left .tile-art {
+  animation: nudge-left 420ms var(--ease), sway 7s ease-in-out 600ms infinite;
+}
+
+.tile.is-focused.nudge-up .tile-art {
+  animation: nudge-up 420ms var(--ease), sway 7s ease-in-out 600ms infinite;
+}
+
+.tile.is-focused.nudge-down .tile-art {
+  animation: nudge-down 420ms var(--ease), sway 7s ease-in-out 600ms infinite;
+}
+
+/* ---------- Control Center button (next to the clock) ---------- */
+
+.topbar-right {
+  display: flex;
+  align-items: flex-start;
+}
+
+.control-pill {
+  width: 3.2vw;
+  height: 3.2vw;
+  margin-right: 1.4vw;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 220ms var(--ease), background 220ms var(--ease);
+}
+
+.pill-icon {
+  width: 1.7vw;
+  height: 1.7vw;
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.control-pill.is-focused {
+  background: #ffffff;
+  transform: scale(1.15);
+}
+
+.control-pill.is-focused .pill-icon {
+  stroke: #000000;
+}
+
+/* ---------- Control Center panel ---------- */
+
+.control {
+  position: fixed;
+  top: 2vw;
+  right: 2vw;
+  bottom: 2vw;
+  width: 26vw;
+  padding: 2vw 1.6vw;
+  border-radius: 2vw;
+  background: rgba(28, 28, 32, 0.96);
+  box-shadow: 0 2vw 5vw rgba(0, 0, 0, 0.6);
+  transform: translateX(32vw);
+  opacity: 0;
+  transition: transform 380ms var(--ease), opacity 300ms var(--ease);
+  z-index: 6;
+  overflow: hidden;
+}
+
+.control.is-visible {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.control-open .clock {
+  opacity: 0;
+}
+
+.control-open main,
+.control-open .hero-text {
+  opacity: 0.35;
+  transition: opacity 300ms var(--ease);
+}
+
+.control-time {
+  font-size: 3.4vw;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.control-date {
+  margin-top: 0.4vw;
+  font-size: 1.05vw;
+  color: var(--text-dim);
+}
+
+.control-items {
+  margin-top: 1.2vw;
+}
+
+.control-heading {
+  margin: 1.1vw 0 0.4vw 0.4vw;
+  font-size: 0.85vw;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.control-item {
+  display: flex;
+  align-items: center;
+  padding: 0.65vw 0.9vw;
+  margin-bottom: 0.25vw;
+  border-radius: 0.9vw;
+  font-size: 1.2vw;
+  font-weight: 600;
+  color: var(--text);
+  transition: background 180ms var(--ease), color 180ms var(--ease), transform 180ms var(--ease);
+}
+
+.control-icon {
+  width: 1.6vw;
+  height: 1.6vw;
+  margin-right: 1vw;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+.control-item.is-focused {
+  background: #ffffff;
+  color: #000000;
+  transform: scale(1.03);
+}
+
+/* ---------- Aerial screensaver ---------- */
+
+.saver {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 1200ms ease, visibility 0s linear 1200ms;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.saver.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 1200ms ease;
+}
+
+.saver-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1500ms ease;
+}
+
+.saver-video.is-playing {
+  opacity: 1;
+}
+
+/* Without video: a slow drifting colour sky. */
+.saver.no-video {
+  background: linear-gradient(120deg, #0b1d3a, #3a1c4a, #0e3b3f, #0b1d3a);
+  background-size: 400% 400%;
+  animation: drift 40s ease-in-out infinite;
+}
+
+@keyframes drift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.saver-shade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 22%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 25%);
+}
+
+.saver-time {
+  position: absolute;
+  top: 3vw;
+  right: 4vw;
+  font-size: 3vw;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  text-shadow: 0 0.2vw 1vw rgba(0, 0, 0, 0.5);
+}
+
+.saver-place {
+  position: absolute;
+  left: 4vw;
+  bottom: 3.2vw;
+  font-size: 1.6vw;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 0.2vw 1vw rgba(0, 0, 0, 0.5);
 }

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Home</title>
+    <link rel="stylesheet" href="styles.css?v=12" />
+  </head>
+  <body data-screen="home">
+    <div class="hero" aria-hidden="true">
+      <div class="hero-layer is-visible">
+        <div class="hero-text">
+          <div class="hero-title"></div>
+          <div class="hero-subtitle"></div>
+        </div>
+      </div>
+      <div class="hero-layer">
+        <div class="hero-text">
+          <div class="hero-title"></div>
+          <div class="hero-subtitle"></div>
+        </div>
+      </div>
+      <div class="hero-fade"></div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <header class="topbar">
+      <div id="greeting" class="greeting"></div>
+      <div class="topbar-right">
+        <div id="control-pill" class="control-pill">
+          <svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 8h9M17 8h3M4 16h3M11 16h9" />
+            <circle cx="15" cy="8" r="2" />
+            <circle cx="9" cy="16" r="2" />
+          </svg>
+        </div>
+        <div class="clock">
+          <div id="clock-time" class="clock-time"></div>
+          <div id="clock-date" class="clock-date"></div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="screen is-active" data-screen="home">
+        <div id="home-rows" class="rows"></div>
+      </section>
+
+      <section class="screen" data-screen="all">
+        <h1 class="screen-title">All Apps</h1>
+        <div id="all-grid" class="grid grid-scroll"></div>
+      </section>
+    </main>
+
+    <aside id="control" class="control" aria-label="Control Center">
+      <div class="control-clock">
+        <div id="control-time" class="control-time"></div>
+        <div id="control-date" class="control-date"></div>
+      </div>
+      <div id="control-items" class="control-items"></div>
+    </aside>
+
+    <div id="saver" class="saver" aria-hidden="true">
+      <video id="saver-video" class="saver-video" muted playsinline preload="none"></video>
+      <div class="saver-shade"></div>
+      <div id="saver-time" class="saver-time"></div>
+      <div id="saver-place" class="saver-place"></div>
+    </div>
+
+    <div id="toast" class="toast" role="status"></div>
+
+    <script src="config.js?v=12"></script>
+    <script src="nav.js?v=12"></script>
+    <script src="apps.js?v=12"></script>
+    <script src="recent.js?v=12"></script>
+    <script src="aerials.js?v=12"></script>
+    <script src="remote.js?v=12"></script>
+    <script src="tv.js?v=12"></script>
+    <script src="view.js?v=12"></script>
+    <script src="sound.js?v=12"></script>
+    <script src="control.js?v=12"></script>
+    <script src="screensaver.js?v=12"></script>
+    <script src="main.js?v=12"></script>
+  </body>
+</html>

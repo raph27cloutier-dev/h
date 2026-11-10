@@ -21,6 +21,15 @@
     // Shows which app list is used and each app's id under its tile. Set to false when everything works.
     showDebug: false,
 
+    // Minutes without a button press before the aerial screensaver starts (0 turns it off).
+    screensaverMinutes: 5,
+
+    // Soft click sounds when moving between tiles, like Apple TV.
+    sounds: true,
+
+    // Row of the apps you opened last, above your favourites.
+    showRecent: true,
+
     // Home screen apps, in order. Use the `key` values from the catalog below.
     // Apps that are not installed on the TV are skipped automatically.
     favourites: ['netflix', 'youtube', 'disney', 'prime', 'crave', 'toutv', 'appletv', 'spotify'],

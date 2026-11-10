@@ -5,7 +5,7 @@
   var apps = root.Launcher.apps;
   var ROW_EDGE_PADDING_VW = 5.5;
   // The TV caches files for a week; bump with each release that changes a logo.
-  var LOGO_VERSION = '?v=11';
+  var LOGO_VERSION = '?v=12';
 
   function element(tag, className, text) {
     var node = document.createElement(tag);
@@ -101,7 +101,7 @@
   function renderRows(container, rows) {
     clear(container);
     rows.forEach(function (row) {
-      var section = element('section', 'row');
+      var section = element('section', 'row row-' + (row.size || 'large'));
       section.appendChild(element('h2', 'row-title', row.title));
       var viewport = element('div', 'row-viewport');
       var track = element('div', 'row-track');
@@ -114,10 +114,29 @@
     });
   }
 
-  function setFocus(container, index) {
+  var NUDGES = ['nudge-left', 'nudge-right', 'nudge-up', 'nudge-down'];
+
+  /** Focus ring on one tile; the newly focused tile tilts towards the move, like tvOS. */
+  function markFocus(node, focused, direction) {
+    var wasFocused = node.classList.contains('is-focused');
+    node.classList.toggle('is-focused', focused);
+    if (!focused || wasFocused) {
+      if (!focused) {
+        NUDGES.forEach(function (name) {
+          node.classList.remove(name);
+        });
+      }
+      return;
+    }
+    if (direction && NUDGES.indexOf('nudge-' + direction) !== -1) {
+      node.classList.add('nudge-' + direction);
+    }
+  }
+
+  function setFocus(container, index, direction) {
     var nodes = container.children;
     for (var i = 0; i < nodes.length; i += 1) {
-      nodes[i].classList.toggle('is-focused', i === index);
+      markFocus(nodes[i], i === index, direction);
     }
     if (nodes[index] && nodes[index].scrollIntoView) {
       nodes[index].scrollIntoView(false);
@@ -142,7 +161,7 @@
     track.style.transform = 'translateX(' + -shift + 'px)';
   }
 
-  function setRowFocus(container, position) {
+  function setRowFocus(container, position, direction) {
     var rows = container.children;
     for (var r = 0; r < rows.length; r += 1) {
       var viewport = rows[r].querySelector('.row-viewport');
@@ -150,7 +169,7 @@
       rows[r].classList.toggle('is-active', r === position.row);
       for (var c = 0; c < track.children.length; c += 1) {
         var focused = r === position.row && c === position.col;
-        track.children[c].classList.toggle('is-focused', focused);
+        markFocus(track.children[c], focused, direction);
         if (focused) {
           scrollRowTo(viewport, track, track.children[c]);
         }
@@ -271,7 +290,14 @@
     }, durationMs || 3500);
   }
 
+  /** The Control Center button next to the clock. */
+  function setPillFocus(focused) {
+    document.getElementById('control-pill').classList.toggle('is-focused', focused);
+    document.body.classList.toggle('pill-focused', focused);
+  }
+
   root.Launcher.view = {
+    setPillFocus: setPillFocus,
     renderGrid: renderGrid,
     renderRows: renderRows,
     setFocus: setFocus,
