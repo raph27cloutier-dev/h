@@ -76,7 +76,7 @@
       })
       .catch(function (error) {
         console.error('Launch failed', tile.appId, error);
-        L.view.toast('Could not open ' + tile.label + ' (' + describe(error) + ').');
+        L.view.toast('Could not open ' + tile.label + ' (' + describe(error) + ').', 15000);
       });
   }
 

@@ -129,30 +129,95 @@
     return (config && config.controlHosts) || ['127.0.0.1'];
   }
 
+  var CONTROL_PORT = 8001;
+  var discoveredIp = null;
+
+  /** fetch that rejects on a non-2xx answer or when the TV does not answer in time. */
+  function request(url, options) {
+    return askTv(function (resolve, reject) {
+      root.fetch(url, options).then(function (response) {
+        if (response.ok) {
+          resolve(response);
+        } else {
+          reject(new Error('HTTP ' + response.status));
+        }
+      }, reject);
+    });
+  }
+
+  function baseUrl(host) {
+    return 'http://' + host + ':' + CONTROL_PORT;
+  }
+
   /**
-   * Opens an app through the TV's own network service (port 8001), which is how the
-   * launcher works inside TizenBrew where the `tizen` functions do not exist.
-   * The TV does not allow the page to read the answer, so a request that goes
-   * through counts as success. Tries each address in config.controlHosts in turn.
+   * Asks each configured address for the TV's device info and remembers the TV's real
+   * network address (the internal 127.0.0.1 address may answer without acting).
    */
-  function launchOverNetwork(appId) {
+  function discoverTvIp() {
+    if (discoveredIp) {
+      return Promise.resolve(discoveredIp);
+    }
     var hosts = controlHosts();
-    var lastError = new Error('Could not reach the TV control service.');
 
     function tryHost(index) {
       if (index >= hosts.length) {
-        return Promise.reject(lastError);
+        return Promise.resolve(null);
       }
-      var url = 'http://' + hosts[index] + ':8001/api/v2/applications/' + encodeURIComponent(appId);
-      return askTv(function (resolve, reject) {
-        root.fetch(url, { method: 'POST', mode: 'no-cors' }).then(resolve, reject);
-      }).catch(function (error) {
-        lastError = error;
-        return tryHost(index + 1);
-      });
+      return request(baseUrl(hosts[index]) + '/api/v2/', { method: 'GET' })
+        .then(function (response) {
+          return response.json();
+        })
+        .then(function (info) {
+          var ip = info && info.device && info.device.ip;
+          if (typeof ip === 'string' && /^[0-9.]+$/.test(ip)) {
+            discoveredIp = ip;
+            return ip;
+          }
+          return tryHost(index + 1);
+        })
+        .catch(function () {
+          return tryHost(index + 1);
+        });
     }
 
     return tryHost(0);
+  }
+
+  function uniqueHosts(first) {
+    var all = (first ? [first] : []).concat(controlHosts());
+    return all.filter(function (host, index) {
+      return all.indexOf(host) === index;
+    });
+  }
+
+  /**
+   * Opens an app through the TV's own network service (port 8001), which is how the
+   * launcher works inside TizenBrew where the `tizen` functions do not exist.
+   * Uses the TV's real network address first, then the configured ones, and only
+   * counts a launch as done when the TV answers OK. Resolves with the address used.
+   */
+  function launchOverNetwork(appId) {
+    return discoverTvIp().then(function (ip) {
+      var hosts = uniqueHosts(ip);
+      var failures = [];
+
+      function tryHost(index) {
+        if (index >= hosts.length) {
+          return Promise.reject(new Error('TV did not accept the launch: ' + failures.join('; ')));
+        }
+        var url = baseUrl(hosts[index]) + '/api/v2/applications/' + encodeURIComponent(appId);
+        return request(url, { method: 'POST' })
+          .then(function () {
+            return hosts[index];
+          })
+          .catch(function (error) {
+            failures.push(hosts[index] + ' ' + ((error && error.message) || 'failed'));
+            return tryHost(index + 1);
+          });
+      }
+
+      return tryHost(0);
+    });
   }
 
   /** Resolves with { preview: true } on a computer, { preview: false } once the TV accepted the launch. */
@@ -162,8 +227,8 @@
       if (!looksLikeTv()) {
         return Promise.resolve({ preview: true });
       }
-      return launchOverNetwork(appId).then(function () {
-        return { preview: false };
+      return launchOverNetwork(appId).then(function (host) {
+        return { preview: false, via: host };
       });
     }
     return askTv(function (resolve, reject) {
