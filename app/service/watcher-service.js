@@ -17,7 +17,7 @@ var rules = require('../helper-rules.js');
 var HOME_ID = 'MyHomeTv01.MyHome';
 var TV_PORT = 8001;
 var STATUS_PORT = 8765;
-var CHECK_MS = 250;
+var CHECK_MS = 100;
 var EXIT_CHECK_MS = 60; // how often the list of running apps is read
 var REPLY_TIMEOUT_MS = 3000;
 var OPEN_GRACE_MS = 12000; // an opened app gets this long to appear
@@ -117,6 +117,11 @@ function isVisible(appId, done) {
 function goHome() {
   note('no known app on screen: opening My Home');
   state = { homeFront: false, paused: state.paused, stopped: state.stopped, graceUntil: Date.now() + RETRY_HOME_MS };
+  launchHome();
+}
+
+// Puts My Home in front. Asked from this service, My Home is resumed, not reloaded.
+function launchHome() {
   try {
     tizen.application.launch(
       HOME_ID,
@@ -202,6 +207,13 @@ function check() {
     }
     if (lastSeen) {
       note(lastSeen + ' left the screen');
+    }
+    // The app My Home opened is covered (Samsung's Home bar) or gone: as the TV's hub,
+    // My Home takes the screen at once instead of first looking for another app.
+    if (!switchedApp) {
+      scanning = false;
+      goHome();
+      return;
     }
     findVisible(others, function (other, failed) {
       scanning = false;
@@ -316,6 +328,12 @@ function handleRequest(data) {
   }
   if (message === 'front' || message === 'stop') {
     openedApp = '';
+  }
+  // Samsung's Home bar opened over My Home itself: come back in front of it.
+  if (message === 'bar' && !state.stopped) {
+    note('bar over My Home: coming back in front');
+    launchHome();
+    return;
   }
   state = rules.applyMessage(state, message, Date.now(), OPEN_GRACE_MS);
   note(message + (opened ? ' ' + opened : ''));

@@ -524,9 +524,8 @@
       if (document.hidden || document.hasFocus() || state.exiting || openingApp()) {
         return;
       }
-      L.tv.bringToFront().catch(function (error) {
-        console.error('Could not come back in front of the Home bar', error);
-      });
+      // Through the helper: asked from the page itself, the TV reloads My Home.
+      tellHelper('bar');
     }, HOME_BAR_CHECK_MS);
   }
 
