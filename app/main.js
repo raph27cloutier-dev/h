@@ -133,6 +133,7 @@
     saveRecent(recent);
   }
 
+  var STORE_NUMBER = /^[0-9]+$/;
   var STILL_HERE_CHECK_MS = 6000;
   var LONG_MESSAGE_MS = 30000;
 
@@ -153,12 +154,19 @@
   }
 
   // The background helper watches the opened app; the page itself is the fallback.
-  function followOpenedApp(appId) {
+  // Only apps with a store number can be watched: the TV does not report the others.
+  function followOpenedApp(tile) {
+    var appId = tile.statusId || tile.appId;
+    if (!STORE_NUMBER.test(appId)) {
+      return;
+    }
     var known = state.allTiles
       .map(function (item) {
-        return item.appId;
+        return item.statusId;
       })
-      .filter(Boolean);
+      .filter(function (id) {
+        return STORE_NUMBER.test(id);
+      });
     L.tv.followInBackground(appId, known, L.config.helperStatusPage).catch(function (error) {
       console.error('Background helper did not start', error);
       L.watcher.follow(appId, known);
@@ -178,7 +186,7 @@
           return;
         }
         if (L.tv.onTv() && L.config.returnHome) {
-          followOpenedApp(tile.appId);
+          followOpenedApp(tile);
         }
         reportIfStillHere(tile, result);
       })

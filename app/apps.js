@@ -57,6 +57,8 @@
       color: entry ? entry.color : colorFor(app.id),
       text: entry && entry.text ? entry.text : '#ffffff',
       appId: app.id,
+      // The TV's status service only knows apps by their store number.
+      statusId: entry && entry.fallbackId ? entry.fallbackId : app.id,
       iconPath: app.iconPath,
       logo: entry && entry.logo ? entry.logo : ''
     };
@@ -70,6 +72,7 @@
       color: entry.color,
       text: entry.text || '#ffffff',
       appId: entry.fallbackId,
+      statusId: entry.fallbackId,
       iconPath: '',
       logo: entry.logo || ''
     };
