@@ -16,20 +16,26 @@
   var ready = null; // Promise of an open, authorised socket
   var listeners = [];
 
-  function readToken() {
+  // Tokens are stored per address and only ever sent back to the address that issued them,
+  // so a token never reaches another device that later takes over a fallback address.
+  function tokenKey(host) {
+    return TOKEN_KEY + '@' + host;
+  }
+
+  function readToken(host) {
     try {
-      return root.localStorage.getItem(TOKEN_KEY) || '';
+      return root.localStorage.getItem(tokenKey(host)) || '';
     } catch (error) {
       return '';
     }
   }
 
-  function saveToken(token) {
+  function saveToken(host, token) {
     if (typeof token !== 'string' || token === '') {
       return;
     }
     try {
-      root.localStorage.setItem(TOKEN_KEY, token);
+      root.localStorage.setItem(tokenKey(host), token);
     } catch (error) {
       console.error('Could not save the TV token', error);
     }
@@ -48,7 +54,7 @@
     var url =
       'ws://' + host + ':' + PORT + '/api/v2/channels/samsung.remote.control?name=' +
       encodeURIComponent(root.btoa(CLIENT_NAME));
-    var token = readToken();
+    var token = readToken(host);
     return token ? url + '&token=' + encodeURIComponent(token) : url;
   }
 
@@ -105,7 +111,7 @@
           return;
         }
         if (message.event === 'ms.channel.connect') {
-          saveToken(message.data && message.data.token);
+          saveToken(host, message.data && message.data.token);
           finish(null);
         } else if (message.event === 'ms.channel.unauthorized') {
           finish(new Error(host + ': the TV refused (choose Allow when it asks)'));
