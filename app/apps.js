@@ -57,7 +57,8 @@
       color: entry ? entry.color : colorFor(app.id),
       text: entry && entry.text ? entry.text : '#ffffff',
       appId: app.id,
-      iconPath: app.iconPath
+      iconPath: app.iconPath,
+      logo: entry && entry.logo ? entry.logo : ''
     };
   }
 
@@ -69,7 +70,8 @@
       color: entry.color,
       text: entry.text || '#ffffff',
       appId: entry.fallbackId,
-      iconPath: ''
+      iconPath: '',
+      logo: entry.logo || ''
     };
   }
 

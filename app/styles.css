@@ -286,7 +286,30 @@ body[data-screen='all'] .greeting {
   object-fit: cover;
 }
 
-.tile-art.has-icon .tile-wordmark {
+.tile-art.has-icon .tile-wordmark,
+.tile-art.has-logo .tile-wordmark {
+  display: none;
+}
+
+/* Real brand logo, centred and kept inside the tile whatever its shape. */
+.tile-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: 66%;
+  max-height: 44%;
+  transform: translate(-50%, -50%);
+}
+
+/* Banner logo replaces the big name when it loads. */
+.hero-logo {
+  display: block;
+  max-width: 34vw;
+  max-height: 8.5vw;
+  filter: drop-shadow(0 0.4vw 1.6vw rgba(0, 0, 0, 0.5));
+}
+
+.hero-text.has-logo .hero-title {
   display: none;
 }
 

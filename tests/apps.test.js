@@ -63,6 +63,18 @@ test('buildTiles carries the catalog text colour, defaulting to white', () => {
   assert.equal(apps.buildTiles([], catalog)[0].text, '#e50914');
 });
 
+test('buildTiles carries the catalog logo; other apps have none', () => {
+  const catalog = [{ key: 'netflix', label: 'Netflix', match: 'netflix', color: '#141414', logo: 'logos/netflix.svg', fallbackId: 'n' }];
+  const installed = [
+    { id: 'a.netflix', name: 'Netflix', iconPath: '' },
+    { id: 'other', name: 'Other', iconPath: '' }
+  ];
+  const tiles = apps.buildTiles(installed, catalog);
+  assert.equal(tiles[0].logo, 'logos/netflix.svg');
+  assert.equal(tiles[1].logo, '');
+  assert.equal(apps.buildTiles([], catalog)[0].logo, 'logos/netflix.svg');
+});
+
 test('buildTiles gives a catalog entry to one app only; look-alikes keep their own name', () => {
   const installed = [
     { id: 'kids.netflix', name: 'Netflix Kids', iconPath: '' },

@@ -4,6 +4,8 @@
 
   var apps = root.Launcher.apps;
   var ROW_EDGE_PADDING_VW = 5.5;
+  // The TV caches files for a week; bump with each release that changes a logo.
+  var LOGO_VERSION = '?v=11';
 
   function element(tag, className, text) {
     var node = document.createElement(tag);
@@ -42,6 +44,22 @@
     art.appendChild(image);
   }
 
+  /** Real brand logo from app/logos; if it fails to load, the name stays visible. */
+  function addLogo(art, tile) {
+    var image = element('img', 'tile-logo');
+    image.alt = '';
+    image.onload = function () {
+      art.classList.add('has-logo');
+    };
+    image.onerror = function () {
+      if (image.parentNode) {
+        image.parentNode.removeChild(image);
+      }
+    };
+    image.src = tile.logo + LOGO_VERSION;
+    art.appendChild(image);
+  }
+
   function wordmarkFor(tile) {
     if (tile.type === 'all') {
       return '';
@@ -57,7 +75,9 @@
       art.style.color = tile.text;
     }
     art.appendChild(element('span', 'tile-wordmark', wordmarkFor(tile)));
-    if (tile.type === 'app' && tile.iconPath) {
+    if (tile.type === 'app' && tile.logo) {
+      addLogo(art, tile);
+    } else if (tile.type === 'app' && tile.iconPath) {
       addIcon(art, tile);
     }
     art.appendChild(element('span', 'tile-shine'));
@@ -148,6 +168,32 @@
     return 'Press OK to open';
   }
 
+  /** Big logo in the banner, or the app name when there is no logo (or it fails). */
+  function showHeroLogo(layer, logo) {
+    var text = layer.querySelector('.hero-text');
+    var old = layer.querySelector('.hero-logo');
+    if (old) {
+      old.parentNode.removeChild(old);
+    }
+    text.classList.remove('has-logo');
+    if (!logo) {
+      return;
+    }
+    var image = element('img', 'hero-logo');
+    image.alt = '';
+    image.onload = function () {
+      text.classList.add('has-logo');
+    };
+    image.onerror = function () {
+      if (image.parentNode) {
+        image.parentNode.removeChild(image);
+      }
+      text.classList.remove('has-logo');
+    };
+    image.src = logo + LOGO_VERSION;
+    text.insertBefore(image, text.firstChild);
+  }
+
   var heroFront = 0;
   var heroKey = null;
 
@@ -170,6 +216,7 @@
     var title = next.querySelector('.hero-title');
     title.textContent = tile.type === 'all' ? 'All Apps' : tile.label;
     title.style.color = tile.type === 'app' && tile.text ? tile.text : '#ffffff';
+    showHeroLogo(next, tile.type === 'app' ? tile.logo : '');
     next.querySelector('.hero-subtitle').textContent = heroSubtitle(tile);
     layers[heroFront].classList.add('is-visible');
     layers[1 - heroFront].classList.remove('is-visible');
