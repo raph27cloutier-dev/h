@@ -34,6 +34,7 @@
     sourceShowing: false,
     switchingSource: false,
     pillFocused: false,
+    leftSinceLaunch: false,
     recent: loadRecent(),
     installed: [],
     homeFocusPlaced: false
@@ -140,11 +141,11 @@
   // The app did not come to the front: say so, with what the TV answered.
   function reportIfStillHere(tile, result) {
     setTimeout(function () {
-      if (document.hidden) {
+      if (document.hidden || state.leftSinceLaunch) {
         return;
       }
       L.tv.appStatus(tile.appId).then(function (status) {
-        if (document.hidden) {
+        if (document.hidden || state.leftSinceLaunch) {
           return;
         }
         var details = (result.trace || []).concat(['app is ' + status]).join(', ');
@@ -187,6 +188,7 @@
 
   function openApp(tile) {
     rememberOpened(tile);
+    update({ leftSinceLaunch: false });
     L.view.toast('Opening ' + tile.label + '\u2026', LONG_MESSAGE_MS);
     tellHelperAppOpened(tile);
     L.tv
@@ -202,6 +204,10 @@
       })
       .catch(function (error) {
         console.error('Launch failed', tile.appId, error);
+        // The app did come to the front: a late "no answer" from the TV is not a failure.
+        if (state.leftSinceLaunch) {
+          return;
+        }
         L.tv.appStatus(tile.appId).then(function (status) {
           L.view.toast('Could not open ' + tile.label + ' (' + describe(error) + '). App is ' + status + '.', LONG_MESSAGE_MS);
         });
@@ -343,7 +349,7 @@
   }
 
   function showTiles(rawInstalled, source) {
-    var installed = L.apps.normalizeInstalled(rawInstalled);
+    var installed = L.apps.normalizeInstalled(rawInstalled, L.config.ownPackage);
     if (source === 'tv' || source === 'remote') {
       setStatus(
         installed.length > 0
@@ -442,10 +448,15 @@
         }
       };
     });
-    return [
-      { heading: 'TV', label: 'Turn Off TV', icon: 'power', run: function () { runTvKey('KEY_POWER', 'turn off the TV'); } },
+    // As a TV app there is no way to turn the TV off (use the remote), but sound works.
+    var power = L.tv.onTv()
+      ? []
+      : [{ label: 'Turn Off TV', icon: 'power', run: function () { runTvKey('KEY_POWER', 'turn off the TV'); } }];
+    var tvItems = power.concat([
       { label: 'Mute', icon: 'mute', run: function () { runTvKey('KEY_MUTE', 'mute the TV'); } }
-    ]
+    ]);
+    return [Object.assign({ heading: 'TV' }, tvItems[0])]
+      .concat(tvItems.slice(1))
       .concat(inputs)
       .concat([
         { heading: 'My Home', label: 'Screen Saver', icon: 'saver', run: function () { L.screensaver.start(); } },
@@ -473,6 +484,12 @@
   // Back from an app: the Recent row now includes it.
   function onVisibilityChange() {
     tellHelper(document.hidden ? 'back' : 'front');
+    if (document.hidden) {
+      update({ leftSinceLaunch: true });
+    } else {
+      // Coming back from an app: no leftover "Opening..." message.
+      L.view.hideToast();
+    }
     if (!document.hidden && state.homeRows.length > 0) {
       renderHome();
     }
@@ -485,7 +502,7 @@
     L.tv
       .installedOverRemote()
       .then(function (raw) {
-        var count = L.apps.normalizeInstalled(raw).length;
+        var count = L.apps.normalizeInstalled(raw, L.config.ownPackage).length;
         if (count > 0) {
           showTiles(raw, 'remote');
           L.view.toast('Loaded ' + count + ' apps from your TV.');

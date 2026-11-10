@@ -468,6 +468,14 @@
    * remote-control service. Resolves {preview:true} on a computer.
    */
   function pressTvKey(key) {
+    var api = tizenApi();
+    // As a real TV app, sound goes through the TV's own audio control.
+    if (api && api.tvaudiocontrol && key === 'KEY_MUTE') {
+      return new Promise(function (resolve) {
+        api.tvaudiocontrol.setMute(!api.tvaudiocontrol.isMute());
+        resolve({ preview: false });
+      });
+    }
     if (!looksLikeTv()) {
       return Promise.resolve({ preview: true });
     }

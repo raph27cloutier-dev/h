@@ -17,9 +17,12 @@
     // on screen, and Back on the home screen does not leave. Leave with Exit to TV.
     alwaysHome: true,
 
-    // TESTING ONLY: lets a computer on the home network read the helper's log on port 8765.
-    // Set to false once coming back to My Home works.
-    helperStatusPage: true,
+    // TESTING ONLY: when true, a computer on the home network can read the helper's log
+    // on port 8765 (it shows which apps are opened). Keep false in normal use.
+    helperStatusPage: false,
+
+    // My Home's own package code as a TV app, so it does not list itself in All Apps.
+    ownPackage: 'MyHomeTv01',
 
     // Extra remote buttons My Home listens to when installed as a TV app.
     remoteKeys: ['MediaPlayPause', 'ColorF0Red'],

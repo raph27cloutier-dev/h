@@ -12,7 +12,7 @@ const CATALOG = [
 
 test('normalizeInstalled keeps valid visible apps only', () => {
   const raw = [
-    { id: 'a.netflix', name: 'Netflix', iconPath: '/x/icon.png', show: true },
+    { id: 'AbCdEf1234.Netflix', name: 'Netflix', iconPath: '/x/icon.png', show: true },
     { id: 'svc.hidden', name: 'Some Service', show: false },
     { id: '', name: 'No id' },
     { id: 'no.name' },
@@ -20,7 +20,7 @@ test('normalizeInstalled keeps valid visible apps only', () => {
     'garbage'
   ];
   assert.deepEqual(apps.normalizeInstalled(raw), [
-    { id: 'a.netflix', name: 'Netflix', iconPath: '/x/icon.png' }
+    { id: 'AbCdEf1234.Netflix', name: 'Netflix', iconPath: '/x/icon.png' }
   ]);
 });
 
@@ -130,4 +130,18 @@ test('accentFor uses the text colour when the tile is almost black (Netflix, Spo
   assert.equal(apps.accentFor({ color: '#141414', text: '#e50914' }), '#e50914');
   assert.equal(apps.accentFor({ color: '#000000', text: '#ffffff' }), '#8e8e93');
   assert.equal(apps.accentFor({ color: '#121212' }), '#8e8e93');
+});
+
+test('isUserApp keeps store apps and built-in apps, drops the TV\'s internal parts', () => {
+  const keep = (id, name) => apps.isUserApp({ id, name }, 'MyHomeTv01');
+  assert.equal(keep('9Ur5IzDKqV.TizenYouTube', 'YouTube'), true);
+  assert.equal(keep('org.tizen.netflix-app', 'Netflix'), true);
+  assert.equal(keep('com.samsung.tv.aria-video', 'Apple TV'), true);
+  assert.equal(keep('com.samsung.tv.aria-dummy', 'Apple TV'), false);
+  assert.equal(keep('org.tizen.ep-hotel-alarm', 'EP Hotel Alarm'), false);
+  assert.equal(keep('rJeHak5zRg.SpotifyService', 'SpotifyRecomendationsService'), false);
+  assert.equal(keep('IohB833qj0.service', 'service'), false);
+  assert.equal(keep('MyHomeTv01.MyHome', 'My Home'), false);
+  assert.equal(keep('3201907018807', 'Netflix'), true);
+  assert.equal(keep('preview.netflix', 'Netflix'), true);
 });

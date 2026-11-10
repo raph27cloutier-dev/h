@@ -5,7 +5,7 @@
   var apps = root.Launcher.apps;
   var ROW_EDGE_PADDING_VW = 5.5;
   // The TV caches files for a week; bump with each release that changes a logo.
-  var LOGO_VERSION = '?v=18';
+  var LOGO_VERSION = '?v=19';
 
   function element(tag, className, text) {
     var node = document.createElement(tag);
@@ -290,6 +290,14 @@
     }, durationMs || 3500);
   }
 
+  function hideToast() {
+    if (toastTimer) {
+      clearTimeout(toastTimer);
+      toastTimer = null;
+    }
+    document.getElementById('toast').classList.remove('is-visible');
+  }
+
   /** The Control Center button next to the clock. */
   function setPillFocus(focused) {
     document.getElementById('control-pill').classList.toggle('is-focused', focused);
@@ -305,6 +313,7 @@
     updateHero: updateHero,
     showScreen: showScreen,
     updateClock: updateClock,
-    toast: toast
+    toast: toast,
+    hideToast: hideToast
   };
 })(window);

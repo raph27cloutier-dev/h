@@ -17,12 +17,47 @@
     );
   }
 
+  // A Samsung TV lists hundreds of internal parts next to the real apps. Apps from the
+  // store have an id made of a 10-character code, a dot and a name ("9Ur5IzDKqV.TizenYouTube").
+  var STORE_APP_ID = /^[A-Za-z0-9]{10}\.[^.]+$/;
+  var NOT_AN_APP = /service|preview|promotion|devicecare/i;
+  // Apps Samsung builds into the TV under other kinds of ids.
+  var BUILT_IN_APPS = [
+    'org.tizen.netflix-app',
+    'org.tizen.primevideo',
+    'org.tizen.apple.apple-music',
+    'com.samsung.tv.aria-video',
+    'org.tizen.browser',
+    'com.samsung.tv.gallery',
+    'com.samsung.tv.samsung-health',
+    'com.samsung.tv.iot-dashboard'
+  ];
+
+  /**
+   * True for something a person would open. `ownPackage` is My Home's own code, so it
+   * does not list itself. Numbered ids (TV network service) and preview ids are kept.
+   */
+  function isUserApp(app, ownPackage) {
+    if (/^[0-9]+$/.test(app.id) || app.id.indexOf('preview.') === 0) {
+      return true;
+    }
+    if (BUILT_IN_APPS.indexOf(app.id) !== -1) {
+      return true;
+    }
+    if (ownPackage && app.id.indexOf(ownPackage + '.') === 0) {
+      return false;
+    }
+    return STORE_APP_ID.test(app.id) && !NOT_AN_APP.test(app.id) && !NOT_AN_APP.test(app.name);
+  }
+
   /** Validates what the TV returned; never trusts its shape. */
-  function normalizeInstalled(raw) {
+  function normalizeInstalled(raw, ownPackage) {
     if (!Array.isArray(raw)) {
       return [];
     }
-    return raw.filter(isUsableApp).map(function (item) {
+    return raw.filter(isUsableApp).filter(function (item) {
+      return isUserApp(item, ownPackage);
+    }).map(function (item) {
       return {
         id: item.id,
         name: item.name,
@@ -202,6 +237,7 @@
   var api = {
     accentFor: accentFor,
     normalizeInstalled: normalizeInstalled,
+    isUserApp: isUserApp,
     buildTiles: buildTiles,
     pickFavourites: pickFavourites,
     sourceTiles: sourceTiles,
