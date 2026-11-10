@@ -2,7 +2,8 @@
  * Background helper of the My Home TV app. The TV pauses the My Home page while another
  * app is on screen, so this small service does the watching: when the app My Home opened
  * is no longer on screen (and no other known app is), it puts My Home back in front.
- * It also answers on STATUS_PORT with its recent log, to check from a computer that it runs.
+ * Only when My Home asks for it (config.helperStatusPage), it also answers on STATUS_PORT
+ * with its recent log, to check from a computer on the home network that it runs.
  */
 'use strict';
 
@@ -197,13 +198,15 @@ function startStatusServer() {
 
 module.exports.onStart = function () {
   note('helper started');
-  startStatusServer();
 };
 
 module.exports.onRequest = function () {
   try {
     var requested = tizen.application.getCurrentApplication().getRequestedAppControl();
     var data = (requested && requested.appControl && requested.appControl.data) || [];
+    if (valuesOf(data, 'status')[0] === 'on') {
+      startStatusServer();
+    }
     var appId = valuesOf(data, 'follow')[0];
     if (appId) {
       follow(appId, valuesOf(data, 'known'));

@@ -1,6 +1,6 @@
 {
   "name": "samsung-tv-launcher",
-  "version": "5.9.0",
+  "version": "5.9.1",
   "description": "A clean, ad-free Apple TV-style home screen for Samsung Tizen TVs (TizenBrew module).",
   "private": true,
   "packageType": "app",

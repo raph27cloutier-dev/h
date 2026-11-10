@@ -159,7 +159,7 @@
         return item.appId;
       })
       .filter(Boolean);
-    L.tv.followInBackground(appId, known).catch(function (error) {
+    L.tv.followInBackground(appId, known, L.config.helperStatusPage).catch(function (error) {
       console.error('Background helper did not start', error);
       L.watcher.follow(appId, known);
     });

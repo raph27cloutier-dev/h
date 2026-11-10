@@ -354,7 +354,7 @@
    * As a real TV app: asks the background helper to watch `appId` and return to My Home
    * when it closes. `knownIds` are other apps the person may switch to meanwhile.
    */
-  function followInBackground(appId, knownIds) {
+  function followInBackground(appId, knownIds, statusPage) {
     var api = tizenApi();
     if (!api || !root.tizen || !root.tizen.ApplicationControl) {
       return Promise.reject(new Error('not installed as a TV app'));
@@ -362,7 +362,8 @@
     return askTv(function (resolve, reject) {
       var control = new root.tizen.ApplicationControl('http://tizen.org/appcontrol/operation/service', null, null, null, [
         new root.tizen.ApplicationControlData('follow', [appId]),
-        new root.tizen.ApplicationControlData('known', knownIds.length ? knownIds : [appId])
+        new root.tizen.ApplicationControlData('known', knownIds.length ? knownIds : [appId]),
+        new root.tizen.ApplicationControlData('status', [statusPage ? 'on' : 'off'])
       ]);
       api.application.launchAppControl(control, WATCHER_SERVICE_ID, resolve, reject);
     });
