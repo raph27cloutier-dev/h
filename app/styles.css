@@ -1,8 +1,11 @@
 /*
  * tvOS-inspired look. Sizes are in vw so the layout scales the same on 720p, 1080p
- * and 4K TVs. Written for the TV's older Chromium: no flex `gap`. The "Liquid Glass"
- * surfaces are faked with translucent gradients and light rims; real blur is added
- * only where the browser supports backdrop-filter.
+ * and 4K TVs. Written for the TV's older Chromium: no flex `gap`.
+ *
+ * PERFORMANCE (measured on a 2020 Samsung TV): blurred shadows, drop-shadow filters,
+ * radial gradients and see-through groups (opacity on big containers) each cut the TV
+ * from ~50 to ~5 pictures per second. So: borders instead of shadows, a pre-drawn glow
+ * image (hero-mask.png) over a plain colour instead of gradients, no dimming layers.
  */
 :root {
   --bg: #05060a;
@@ -15,8 +18,8 @@
   --tile-space: 1.5vw;
   --radius: 1.5vw;
   --glass: linear-gradient(150deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.07) 45%, rgba(255, 255, 255, 0.11) 100%);
-  --glass-solid: rgba(38, 38, 44, 0.78);
-  --glass-rim: inset 0 0 0 0.07vw rgba(255, 255, 255, 0.22), inset 0 0.12vw 0.1vw rgba(255, 255, 255, 0.28);
+  --glass-solid: rgb(40, 40, 47);
+  --rim: 0.07vw solid rgba(255, 255, 255, 0.22);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -44,7 +47,6 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  transition: opacity 400ms var(--ease);
 }
 
 .hero-layer {
@@ -55,7 +57,7 @@ body {
   height: 100%;
   background-color: var(--bg);
   opacity: 0;
-  transition: opacity 600ms var(--ease);
+  transition: opacity 300ms var(--ease);
 }
 
 .hero-layer.is-visible {
@@ -80,7 +82,6 @@ body {
   font-weight: 800;
   letter-spacing: -0.035em;
   line-height: 1;
-  text-shadow: 0 0.4vw 2.4vw rgba(0, 0, 0, 0.45);
 }
 
 .hero-subtitle {
@@ -90,18 +91,19 @@ body {
   color: var(--text-dim);
 }
 
-/* Darkens the bottom so the rows stay readable over any colour. */
+/* Pre-drawn glow: dark everywhere except two soft windows that let the banner colour
+   through, fading to the plain background before the rows. */
 .hero-fade {
   position: absolute;
+  top: 0;
   left: 0;
-  bottom: 0;
   width: 100%;
-  height: 62%;
-  background: linear-gradient(180deg, rgba(5, 6, 10, 0) 0%, rgba(5, 6, 10, 0.82) 45%, var(--bg) 100%);
+  height: 100%;
+  background: url('hero-mask.png?v=1') 0 0 / 100% 100% no-repeat;
 }
 
 body[data-screen='all'] .hero {
-  opacity: 0.25;
+  display: none;
 }
 
 body[data-screen='all'] .hero-text {
@@ -258,13 +260,10 @@ body[data-screen='all'] .greeting {
   border-radius: var(--radius);
   overflow: hidden;
   color: #ffffff;
-  box-shadow: 0 0.5vw 1.4vw rgba(0, 0, 0, 0.5);
-  transition:
-    transform 260ms var(--ease),
-    box-shadow 260ms var(--ease);
+  transition: transform 260ms var(--ease);
 }
 
-/* Liquid Glass edge: a thin light rim and a soft specular highlight on top. */
+/* Glass edge: a thin light rim and a soft highlight on top. */
 .tile-art::after {
   content: '';
   position: absolute;
@@ -272,13 +271,10 @@ body[data-screen='all'] .greeting {
   left: 0;
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
   border-radius: inherit;
-  background:
-    radial-gradient(120% 70% at 22% 0%, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0) 60%, rgba(0, 0, 0, 0.18) 100%);
-  box-shadow:
-    inset 0 0 0 0.08vw rgba(255, 255, 255, 0.2),
-    inset 0 0.14vw 0.12vw rgba(255, 255, 255, 0.3);
+  border: var(--rim);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 45%);
   pointer-events: none;
 }
 
@@ -328,7 +324,6 @@ body[data-screen='all'] .greeting {
   display: block;
   max-width: 30vw;
   max-height: 6.5vw;
-  filter: drop-shadow(0 0.4vw 1.6vw rgba(0, 0, 0, 0.5));
 }
 
 .hero-text.has-logo .hero-title {
@@ -367,19 +362,11 @@ body[data-screen='all'] .greeting {
 .tile.is-focused .tile-art {
   transform: translateY(-0.5vw) scale(1.12);
   animation: sway 7s ease-in-out 600ms infinite;
-  /* tvOS 26: no focus ring, the tile lifts and catches the light. */
-  box-shadow:
-    0 0 2.4vw rgba(255, 255, 255, 0.16),
-    0 1.8vw 3.2vw rgba(0, 0, 0, 0.65);
 }
 
+/* The selected tile lifts and its rim lights up. */
 .tile.is-focused .tile-art::after {
-  background:
-    radial-gradient(120% 80% at 22% 0%, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0) 58%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0) 60%, rgba(0, 0, 0, 0.14) 100%);
-  box-shadow:
-    inset 0 0 0 0.09vw rgba(255, 255, 255, 0.45),
-    inset 0 0.16vw 0.14vw rgba(255, 255, 255, 0.5);
+  border: 0.2vw solid rgba(255, 255, 255, 0.92);
 }
 
 .tile-label {
@@ -416,7 +403,7 @@ body[data-screen='all'] .greeting {
 
 /* Input tiles: plain card with a small plug bar above the name. */
 .tile-source .tile-art {
-  background-image: var(--glass);
+  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
 }
 
 .tile-source .tile-wordmark {
@@ -484,6 +471,8 @@ body[data-screen='all'] .greeting {
 .grid .tile {
   width: 8.6vw;
   margin: 1.2vw 1.2vw 0.6vw;
+  /* Keeps the focused row's names clear of the screen edge when the grid scrolls. */
+  padding-bottom: 1.6vw;
 }
 
 .grid .tile-art {
@@ -523,7 +512,7 @@ body[data-screen='all'] .greeting {
   padding: 0.9vw 1.8vw;
   border-radius: 3vw;
   background: var(--glass), var(--glass-solid);
-  box-shadow: var(--glass-rim), 0 1vw 3vw rgba(0, 0, 0, 0.45);
+  border: var(--rim);
   font-size: 1.1vw;
   font-weight: 600;
   transform: translate(-50%, -7vw);
@@ -608,8 +597,8 @@ html.source-showing .hero-layer {
   height: 3.2vw;
   margin-right: 1.4vw;
   border-radius: 50%;
-  background: var(--glass);
-  box-shadow: var(--glass-rim);
+  background: rgba(255, 255, 255, 0.14);
+  border: var(--rim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -643,6 +632,9 @@ html.source-showing .hero-layer {
   bottom: 2vw;
   width: 27vw;
   padding: 2vw 1.4vw;
+  border-radius: 2.2vw;
+  border: var(--rim);
+  background: rgb(16, 17, 22);
   transform: translateX(32vw);
   opacity: 0;
   transition: transform 380ms var(--ease), opacity 300ms var(--ease);
@@ -660,13 +652,7 @@ html.source-showing .hero-layer {
   opacity: 0;
 }
 
-/* The screen behind dims like iOS when Control Center is pulled down. */
-.control-open main,
-.control-open .hero,
-.control-open .greeting {
-  opacity: 0.3;
-  transition: opacity 300ms var(--ease);
-}
+/* The screen behind is not dimmed: see-through groups are too slow on the TV. */
 
 .control-clock {
   padding: 0 0.6vw;
@@ -695,7 +681,7 @@ html.source-showing .hero-layer {
   padding: 1vw 1vw 0.6vw;
   border-radius: 1.8vw;
   background: var(--glass), var(--glass-solid);
-  box-shadow: var(--glass-rim), 0 1vw 2.4vw rgba(0, 0, 0, 0.35);
+  border: var(--rim);
 }
 
 .control-heading {
@@ -727,7 +713,7 @@ html.source-showing .hero-layer {
   justify-content: center;
   color: var(--text);
   background: rgba(255, 255, 255, 0.14);
-  box-shadow: inset 0 0 0 0.07vw rgba(255, 255, 255, 0.18), inset 0 0.1vw 0.1vw rgba(255, 255, 255, 0.25);
+  border: var(--rim);
   transition: background 180ms var(--ease), color 180ms var(--ease), transform 180ms var(--ease);
 }
 
@@ -755,7 +741,6 @@ html.source-showing .hero-layer {
   background: #ffffff;
   color: #000000;
   transform: scale(1.12);
-  box-shadow: 0 0 1.6vw rgba(255, 255, 255, 0.35);
 }
 
 .control-item.is-focused .control-label {

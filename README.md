@@ -20,7 +20,7 @@ An Apple TV-style home screen for Samsung (Tizen) TVs: your favourite apps, your
 npm run preview
 ```
 
-Then open <http://localhost:4173/home-v19.html>. Arrow keys move, Enter selects, Escape goes back, D shows each app's id. Nothing really opens in preview: a message says what the TV would do.
+Then open <http://localhost:4173/home-v20.html>. Arrow keys move, Enter selects, Escape goes back, D shows each app's id. Nothing really opens in preview: a message says what the TV would do.
 
 ## Change what is on the home screen
 

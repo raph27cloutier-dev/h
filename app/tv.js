@@ -413,6 +413,40 @@
   }
 
   /**
+   * As a real TV app: which of `sources` have something plugged in. Resolves with the
+   * connected ones; with all of them when the TV cannot tell (computer, TizenBrew).
+   */
+  function connectedSources(sources) {
+    var api = tizenApi();
+    if (!api || !api.systeminfo) {
+      return Promise.resolve(sources);
+    }
+    return askTv(function (resolve, reject) {
+      api.systeminfo.getPropertyValue(
+        'VIDEOSOURCE',
+        function (videoSources) {
+          resolve(
+            sources.filter(function (source) {
+              return findSource(videoSources, source) !== null;
+            })
+          );
+        },
+        reject
+      );
+    });
+  }
+
+  /** As a real TV app: true when the TV's sound is muted. */
+  function isMuted() {
+    var api = tizenApi();
+    try {
+      return Boolean(api && api.tvaudiocontrol && api.tvaudiocontrol.isMute());
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
    * EXPERIMENTAL, not yet checked on a real TV: shows an HDMI input full screen
    * behind the page. Rejects with a readable Error when the TV does not allow it.
    */
@@ -531,6 +565,8 @@
     envInfo: envInfo,
     listInstalled: listInstalled,
     launchApp: launchApp,
+    connectedSources: connectedSources,
+    isMuted: isMuted,
     appVisible: appVisible,
     bringToFront: bringToFront,
     tellHelper: tellHelper,

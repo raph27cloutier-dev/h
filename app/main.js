@@ -35,6 +35,8 @@
     switchingSource: false,
     pillFocused: false,
     leftSinceLaunch: false,
+    // Inputs with something plugged in (all of them until the TV has answered).
+    sources: L.config.sources,
     recent: loadRecent(),
     installed: [],
     homeFocusPlaced: false
@@ -370,7 +372,7 @@
     return [
       { title: 'Recent', size: 'small', tiles: recentTiles },
       { title: 'Apps', size: 'large', tiles: L.apps.pickFavourites(allTiles, L.config.favourites).concat([ALL_APPS_TILE]) },
-      { title: 'Inputs', size: 'small', tiles: L.apps.sourceTiles(L.config.sources) }
+      { title: 'Inputs', size: 'small', tiles: L.apps.sourceTiles(state.sources) }
     ].filter(function (row) {
       return row.tiles.length > 0;
     });
@@ -438,7 +440,7 @@
   }
 
   function controlItems() {
-    var inputs = L.apps.sourceTiles(L.config.sources).map(function (tile, index) {
+    var inputs = L.apps.sourceTiles(state.sources).map(function (tile, index) {
       return {
         heading: index === 0 ? 'Inputs' : '',
         label: tile.label,
@@ -453,7 +455,7 @@
       ? []
       : [{ label: 'Turn Off TV', icon: 'power', run: function () { runTvKey('KEY_POWER', 'turn off the TV'); } }];
     var tvItems = power.concat([
-      { label: 'Mute', icon: 'mute', run: function () { runTvKey('KEY_MUTE', 'mute the TV'); } }
+      { label: L.tv.isMuted() ? 'Unmute' : 'Mute', icon: 'mute', run: function () { runTvKey('KEY_MUTE', 'mute the TV'); } }
     ]);
     return [Object.assign({ heading: 'TV' }, tvItems[0])]
       .concat(tvItems.slice(1))
@@ -492,7 +494,26 @@
     }
     if (!document.hidden && state.homeRows.length > 0) {
       renderHome();
+      refreshSources();
     }
+  }
+
+  // Only inputs with something plugged in get a tile.
+  function refreshSources() {
+    L.tv
+      .connectedSources(L.config.sources)
+      .then(function (sources) {
+        if (sources.length === state.sources.length) {
+          return;
+        }
+        update({ sources: sources });
+        if (state.homeRows.length > 0) {
+          renderHome();
+        }
+      })
+      .catch(function (error) {
+        console.error('Could not read the connected inputs', error);
+      });
   }
 
   // Inside TizenBrew: ask the TV's remote-control service for the real app list.
@@ -534,6 +555,7 @@
       .then(function (raw) {
         showTiles(raw, L.tv.onTv() ? 'tv' : 'builtin');
         tellHelper('front');
+        refreshSources();
         if (!L.tv.onTv() && L.tv.looksLikeTv()) {
           loadRealAppsOverRemote();
         }

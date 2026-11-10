@@ -5,7 +5,7 @@
   var apps = root.Launcher.apps;
   var ROW_EDGE_PADDING_VW = 5.5;
   // The TV caches files for a week; bump with each release that changes a logo.
-  var LOGO_VERSION = '?v=19';
+  var LOGO_VERSION = '?v=20';
 
   function element(tag, className, text) {
     var node = document.createElement(tag);
@@ -229,9 +229,8 @@
     heroFront = 1 - heroFront;
     var next = layers[heroFront];
     var accent = apps.accentFor(tile);
-    next.style.backgroundImage =
-      'radial-gradient(70vw 42vw at 74% 36%, ' + accent + ' 0%, rgba(0,0,0,0) 70%),' +
-      'radial-gradient(48vw 30vw at 12% 8%, ' + accent + ' 0%, rgba(0,0,0,0) 75%)';
+    // A plain colour; the glow shape comes from the pre-drawn image above it (see styles.css).
+    next.style.backgroundColor = accent;
     var title = next.querySelector('.hero-title');
     title.textContent = tile.type === 'all' ? 'All Apps' : tile.label;
     title.style.color = tile.type === 'app' && tile.text ? tile.text : '#ffffff';
