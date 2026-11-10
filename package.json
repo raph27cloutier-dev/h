@@ -6,9 +6,15 @@
   "packageType": "app",
   "appName": "My Home",
   "appPath": "app/home-v15.html",
-  "keys": ["MediaPlayPause", "ColorF0Red"],
+  "keys": [
+    "MediaPlayPause",
+    "ColorF0Red"
+  ],
   "scripts": {
     "test": "node --test tests/*.test.js",
     "preview": "python3 -m http.server 4173 --directory app"
+  },
+  "devDependencies": {
+    "@tizentv/webide-common-tizentv": "^1.0.20"
   }
 }
