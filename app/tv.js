@@ -4,6 +4,7 @@
 
   var MAIN_WINDOW = 'MAIN';
   var TV_ANSWER_TIMEOUT_MS = 5000;
+  var LAUNCH_ANSWER_TIMEOUT_MS = 20000; // a cold app can take a while before the TV answers
   var NO_ANSWER = 'The TV did not answer in time.';
 
   /** Reads `getter()`, returning undefined if the browser refuses (cross-origin frames). */
@@ -75,7 +76,7 @@
    * Runs `start(resolve, reject)` as a promise that also rejects if the TV
    * never calls back. Late or repeated callbacks are ignored.
    */
-  function askTv(start) {
+  function askTv(start, timeoutMs) {
     return new Promise(function (resolve, reject) {
       var settled = false;
       var timer = setTimeout(function () {
@@ -83,7 +84,7 @@
           settled = true;
           reject(new Error(NO_ANSWER));
         }
-      }, TV_ANSWER_TIMEOUT_MS);
+      }, timeoutMs || TV_ANSWER_TIMEOUT_MS);
 
       function once(finish) {
         return function (value) {
@@ -133,7 +134,7 @@
   var discoveredIp = null;
 
   /** fetch that rejects on a non-2xx answer or when the TV does not answer in time. */
-  function request(url, options) {
+  function request(url, options, timeoutMs) {
     return askTv(function (resolve, reject) {
       root.fetch(url, options).then(function (response) {
         if (response.ok) {
@@ -142,7 +143,7 @@
           reject(new Error('HTTP ' + response.status));
         }
       }, reject);
-    });
+    }, timeoutMs);
   }
 
   function baseUrl(host) {
@@ -218,7 +219,9 @@
           return Promise.reject(new Error('TV did not accept the launch: ' + failures.join('; ')));
         }
         var url = baseUrl(hosts[index]) + '/api/v2/applications/' + encodeURIComponent(appId);
-        return request(url, { method: 'POST' })
+        // The TV's real address gets the long wait; the others are quick fallbacks.
+        var wait = hosts[index] === ip ? LAUNCH_ANSWER_TIMEOUT_MS : TV_ANSWER_TIMEOUT_MS;
+        return request(url, { method: 'POST' }, wait)
           .then(function () {
             return hosts[index];
           })
@@ -310,6 +313,24 @@
         reject
       );
     });
+  }
+
+  /** What the TV says about an app, as short text: "running, not on screen"... */
+  function appStatus(appId) {
+    return discoverTvIp()
+      .then(function (ip) {
+        var host = ip || controlHosts()[0];
+        return request(baseUrl(host) + '/api/v2/applications/' + encodeURIComponent(appId), { method: 'GET' });
+      })
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (info) {
+        return (info.running ? 'running' : 'not running') + ', ' + (info.visible ? 'on screen' : 'not on screen');
+      })
+      .catch(function (error) {
+        return 'status unknown (' + ((error && error.message) || 'failed') + ')';
+      });
   }
 
   function findSource(videoSources, wanted) {
@@ -437,6 +458,7 @@
     envInfo: envInfo,
     listInstalled: listInstalled,
     launchApp: launchApp,
+    appStatus: appStatus,
     showSource: showSource,
     hideSource: hideSource
   };

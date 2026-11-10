@@ -142,8 +142,13 @@
       if (document.hidden) {
         return;
       }
-      var details = (result.trace || []).join(', ') || 'no details';
-      L.view.toast(tile.label + ' did not open. The TV said: ' + details, LONG_MESSAGE_MS);
+      L.tv.appStatus(tile.appId).then(function (status) {
+        if (document.hidden) {
+          return;
+        }
+        var details = (result.trace || []).concat(['app is ' + status]).join(', ');
+        L.view.toast(tile.label + ' did not open. The TV said: ' + details, LONG_MESSAGE_MS);
+      });
     }, STILL_HERE_CHECK_MS);
   }
 
@@ -163,7 +168,9 @@
       })
       .catch(function (error) {
         console.error('Launch failed', tile.appId, error);
-        L.view.toast('Could not open ' + tile.label + ' (' + describe(error) + ').', LONG_MESSAGE_MS);
+        L.tv.appStatus(tile.appId).then(function (status) {
+          L.view.toast('Could not open ' + tile.label + ' (' + describe(error) + '). App is ' + status + '.', LONG_MESSAGE_MS);
+        });
       });
   }
 
