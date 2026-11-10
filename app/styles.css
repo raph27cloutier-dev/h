@@ -1,6 +1,8 @@
 /*
  * tvOS-inspired look. Sizes are in vw so the layout scales the same on 720p, 1080p
- * and 4K TVs. Written for the TV's older Chromium: no flex `gap`, no backdrop-filter.
+ * and 4K TVs. Written for the TV's older Chromium: no flex `gap`. The "Liquid Glass"
+ * surfaces are faked with translucent gradients and light rims; real blur is added
+ * only where the browser supports backdrop-filter.
  */
 :root {
   --bg: #05060a;
@@ -11,7 +13,10 @@
   --tile-w: 15vw;
   --tile-w-small: 11vw;
   --tile-space: 1.5vw;
-  --radius: 1vw;
+  --radius: 1.5vw;
+  --glass: linear-gradient(150deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.07) 45%, rgba(255, 255, 255, 0.11) 100%);
+  --glass-solid: rgba(38, 38, 44, 0.78);
+  --glass-rim: inset 0 0 0 0.07vw rgba(255, 255, 255, 0.22), inset 0 0.12vw 0.1vw rgba(255, 255, 255, 0.28);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -118,10 +123,11 @@ body[data-screen='all'] .hero-text {
 }
 
 .greeting {
-  font-size: 1.5vw;
-  font-weight: 600;
-  color: var(--text-dim);
-  padding-top: 0.6vw;
+  font-size: 2.3vw;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  padding-top: 0.3vw;
 }
 
 body[data-screen='all'] .greeting {
@@ -186,16 +192,15 @@ body[data-screen='all'] .greeting {
 
 .row-title {
   margin: 0 0 0 var(--side);
-  font-size: 1vw;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-faint);
+  font-size: 1.35vw;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-dim);
   transition: color 250ms var(--ease);
 }
 
 .row.is-active .row-title {
-  color: var(--text-dim);
+  color: var(--text);
 }
 
 .row-viewport {
@@ -259,15 +264,21 @@ body[data-screen='all'] .greeting {
     box-shadow 260ms var(--ease);
 }
 
-/* Soft top highlight, like a glass icon. */
+/* Liquid Glass edge: a thin light rim and a soft specular highlight on top. */
 .tile-art::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  height: 50%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 100%);
+  height: 100%;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 70% at 22% 0%, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0) 60%, rgba(0, 0, 0, 0.18) 100%);
+  box-shadow:
+    inset 0 0 0 0.08vw rgba(255, 255, 255, 0.2),
+    inset 0 0.14vw 0.12vw rgba(255, 255, 255, 0.3);
   pointer-events: none;
 }
 
@@ -356,9 +367,19 @@ body[data-screen='all'] .greeting {
 .tile.is-focused .tile-art {
   transform: translateY(-0.5vw) scale(1.12);
   animation: sway 7s ease-in-out 600ms infinite;
+  /* tvOS 26: no focus ring, the tile lifts and catches the light. */
   box-shadow:
-    0 0 0 0.18vw rgba(255, 255, 255, 0.85),
+    0 0 2.4vw rgba(255, 255, 255, 0.16),
     0 1.8vw 3.2vw rgba(0, 0, 0, 0.65);
+}
+
+.tile.is-focused .tile-art::after {
+  background:
+    radial-gradient(120% 80% at 22% 0%, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0) 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0) 60%, rgba(0, 0, 0, 0.14) 100%);
+  box-shadow:
+    inset 0 0 0 0.09vw rgba(255, 255, 255, 0.45),
+    inset 0 0.16vw 0.14vw rgba(255, 255, 255, 0.5);
 }
 
 .tile-label {
@@ -395,7 +416,7 @@ body[data-screen='all'] .greeting {
 
 /* Input tiles: plain card with a small plug bar above the name. */
 .tile-source .tile-art {
-  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
+  background-image: var(--glass);
 }
 
 .tile-source .tile-wordmark {
@@ -459,9 +480,37 @@ body[data-screen='all'] .greeting {
   align-content: flex-start;
 }
 
+/* iOS home screen: rounded-square icons with their names underneath. */
 .grid .tile {
-  width: 13.2vw;
-  margin: 1.2vw 0.8vw 0.8vw;
+  width: 8.6vw;
+  margin: 1.2vw 1.2vw 0.6vw;
+}
+
+.grid .tile-art {
+  padding-top: 100%;
+  border-radius: 22.5%;
+}
+
+.grid .tile-logo {
+  max-width: 70%;
+  max-height: 40%;
+}
+
+.grid .tile-wordmark {
+  font-size: 1.15vw;
+}
+
+.grid .tile-label {
+  margin-top: 0.7vw;
+  font-size: 0.95vw;
+}
+
+.grid .tile.is-focused .tile-art {
+  transform: translateY(-0.3vw) scale(1.1);
+}
+
+.grid .tile-all .tile-art::before {
+  margin: -1.15vw 0 0 -1.95vw;
 }
 
 /* ---------- Messages ---------- */
@@ -469,13 +518,15 @@ body[data-screen='all'] .greeting {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 2vw;
-  max-width: 70vw;
-  padding: 0.8vw 1.6vw;
-  border-radius: 2vw;
-  background: rgba(30, 30, 32, 0.94);
+  top: 1.6vw;
+  max-width: 60vw;
+  padding: 0.9vw 1.8vw;
+  border-radius: 3vw;
+  background: var(--glass), var(--glass-solid);
+  box-shadow: var(--glass-rim), 0 1vw 3vw rgba(0, 0, 0, 0.45);
   font-size: 1.1vw;
-  transform: translate(-50%, 6vw);
+  font-weight: 600;
+  transform: translate(-50%, -7vw);
   opacity: 0;
   transition:
     transform 220ms var(--ease),
@@ -557,7 +608,8 @@ html.source-showing .hero-layer {
   height: 3.2vw;
   margin-right: 1.4vw;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass);
+  box-shadow: var(--glass-rim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -568,7 +620,7 @@ html.source-showing .hero-layer {
   width: 1.7vw;
   height: 1.7vw;
   fill: none;
-  stroke: var(--text-dim);
+  stroke: var(--text);
   stroke-width: 2;
   stroke-linecap: round;
 }
@@ -582,18 +634,15 @@ html.source-showing .hero-layer {
   stroke: #000000;
 }
 
-/* ---------- Control Center panel ---------- */
+/* ---------- Control Center panel (iOS style: glass modules, round buttons) ---------- */
 
 .control {
   position: fixed;
   top: 2vw;
   right: 2vw;
   bottom: 2vw;
-  width: 26vw;
-  padding: 2vw 1.6vw;
-  border-radius: 2vw;
-  background: rgba(28, 28, 32, 0.96);
-  box-shadow: 0 2vw 5vw rgba(0, 0, 0, 0.6);
+  width: 27vw;
+  padding: 2vw 1.4vw;
   transform: translateX(32vw);
   opacity: 0;
   transition: transform 380ms var(--ease), opacity 300ms var(--ease);
@@ -606,18 +655,25 @@ html.source-showing .hero-layer {
   opacity: 1;
 }
 
-.control-open .clock {
+.control-open .clock,
+.control-open .control-pill {
   opacity: 0;
 }
 
+/* The screen behind dims like iOS when Control Center is pulled down. */
 .control-open main,
-.control-open .hero-text {
-  opacity: 0.35;
+.control-open .hero,
+.control-open .greeting {
+  opacity: 0.3;
   transition: opacity 300ms var(--ease);
 }
 
+.control-clock {
+  padding: 0 0.6vw;
+}
+
 .control-time {
-  font-size: 3.4vw;
+  font-size: 3.6vw;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -625,51 +681,85 @@ html.source-showing .hero-layer {
 
 .control-date {
   margin-top: 0.4vw;
-  font-size: 1.05vw;
+  font-size: 1.1vw;
+  font-weight: 600;
   color: var(--text-dim);
 }
 
 .control-items {
-  margin-top: 1.2vw;
+  margin-top: 1.4vw;
+}
+
+.control-module {
+  margin-bottom: 1vw;
+  padding: 1vw 1vw 0.6vw;
+  border-radius: 1.8vw;
+  background: var(--glass), var(--glass-solid);
+  box-shadow: var(--glass-rim), 0 1vw 2.4vw rgba(0, 0, 0, 0.35);
 }
 
 .control-heading {
-  margin: 1.1vw 0 0.4vw 0.4vw;
-  font-size: 0.85vw;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-faint);
+  margin: 0 0 0.7vw 0.3vw;
+  font-size: 0.95vw;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.control-buttons {
+  display: flex;
+  flex-wrap: nowrap;
 }
 
 .control-item {
+  width: 6vw;
+  margin-right: 0.4vw;
+  text-align: center;
+  transition: transform 180ms var(--ease);
+}
+
+.control-circle {
+  width: 4.2vw;
+  height: 4.2vw;
+  margin: 0 auto;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  padding: 0.65vw 0.9vw;
-  margin-bottom: 0.25vw;
-  border-radius: 0.9vw;
-  font-size: 1.2vw;
-  font-weight: 600;
+  justify-content: center;
   color: var(--text);
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 0.07vw rgba(255, 255, 255, 0.18), inset 0 0.1vw 0.1vw rgba(255, 255, 255, 0.25);
   transition: background 180ms var(--ease), color 180ms var(--ease), transform 180ms var(--ease);
 }
 
 .control-icon {
-  width: 1.6vw;
-  height: 1.6vw;
-  margin-right: 1vw;
+  width: 1.9vw;
+  height: 1.9vw;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  flex: none;
 }
 
-.control-item.is-focused {
+.control-label {
+  margin-top: 0.5vw;
+  font-size: 0.85vw;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.control-item.is-focused .control-circle {
   background: #ffffff;
   color: #000000;
-  transform: scale(1.03);
+  transform: scale(1.12);
+  box-shadow: 0 0 1.6vw rgba(255, 255, 255, 0.35);
+}
+
+.control-item.is-focused .control-label {
+  color: var(--text);
 }
 
 /* ---------- Aerial screensaver ---------- */
@@ -750,4 +840,20 @@ html.source-showing .hero-layer {
   font-weight: 600;
   color: rgba(255, 255, 255, 0.85);
   text-shadow: 0 0.2vw 1vw rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- Real glass blur, where the browser supports it ---------- */
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .control-module,
+  .toast,
+  .control-pill {
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+  }
+
+  .control-module,
+  .toast {
+    background: var(--glass), rgba(38, 38, 44, 0.45);
+  }
 }

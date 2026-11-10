@@ -5,7 +5,7 @@
   var apps = root.Launcher.apps;
   var ROW_EDGE_PADDING_VW = 5.5;
   // The TV caches files for a week; bump with each release that changes a logo.
-  var LOGO_VERSION = '?v=12';
+  var LOGO_VERSION = '?v=13';
 
   function element(tag, className, text) {
     var node = document.createElement(tag);

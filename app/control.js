@@ -7,8 +7,9 @@
 
   var L = root.Launcher;
   var open = false;
-  var items = [];
-  var index = 0;
+  // Items grouped into iOS-style modules: one row of round buttons per heading.
+  var groups = [];
+  var position = { row: 0, col: 0 };
 
   function panel() {
     return document.getElementById('control');
@@ -40,26 +41,58 @@
     return svg;
   }
 
+  /** [{heading, items: [...]}]: a new group starts at each item with a heading. */
+  function groupItems(entries) {
+    return entries.reduce(function (result, item) {
+      if (item.heading || result.length === 0) {
+        return result.concat([{ heading: item.heading || '', items: [item] }]);
+      }
+      var last = result[result.length - 1];
+      return result.slice(0, -1).concat([{ heading: last.heading, items: last.items.concat([item]) }]);
+    }, []);
+  }
+
+  function rowLengths() {
+    return groups.map(function (group) {
+      return group.items.length;
+    });
+  }
+
+  function createButton(item, focused) {
+    var node = document.createElement('div');
+    node.className = 'control-item' + (focused ? ' is-focused' : '');
+    var circle = document.createElement('div');
+    circle.className = 'control-circle';
+    circle.appendChild(icon(item.icon));
+    node.appendChild(circle);
+    var label = document.createElement('div');
+    label.className = 'control-label';
+    label.textContent = item.label;
+    node.appendChild(label);
+    return node;
+  }
+
   function render() {
     var container = list();
     while (container.firstChild) {
       container.removeChild(container.firstChild);
     }
-    items.forEach(function (item, i) {
-      if (item.heading) {
+    groups.forEach(function (group, r) {
+      var module = document.createElement('section');
+      module.className = 'control-module';
+      if (group.heading) {
         var heading = document.createElement('div');
         heading.className = 'control-heading';
-        heading.textContent = item.heading;
-        container.appendChild(heading);
+        heading.textContent = group.heading;
+        module.appendChild(heading);
       }
-      var node = document.createElement('div');
-      node.className = 'control-item' + (i === index ? ' is-focused' : '');
-      node.appendChild(icon(item.icon));
-      var label = document.createElement('span');
-      label.className = 'control-label';
-      label.textContent = item.label;
-      node.appendChild(label);
-      container.appendChild(node);
+      var buttons = document.createElement('div');
+      buttons.className = 'control-buttons';
+      group.items.forEach(function (item, c) {
+        buttons.appendChild(createButton(item, r === position.row && c === position.col));
+      });
+      module.appendChild(buttons);
+      container.appendChild(module);
     });
   }
 
@@ -78,8 +111,8 @@
 
   /** `entries`: [{label, icon, heading?, run()}]. */
   function show(entries) {
-    items = entries.slice();
-    index = 0;
+    groups = groupItems(entries);
+    position = { row: 0, col: 0 };
     open = true;
     updateClock();
     render();
@@ -95,21 +128,23 @@
 
   /** Handles a remote action while the panel is open. Returns 'moved', 'ran', 'closed' or ''. */
   function handle(action) {
-    if (action === 'back' || action === 'control' || action === 'left') {
+    var closesOnLeft = action === 'left' && position.col === 0;
+    if (action === 'back' || action === 'control' || closesOnLeft) {
       hide();
       return 'closed';
     }
-    if (action === 'up' || action === 'down') {
-      var next = L.nav.move(index, action, items.length, 1);
-      if (next === index) {
+    if (action === 'up' || action === 'down' || action === 'left' || action === 'right') {
+      var next = L.nav.moveInRows(position, action, rowLengths());
+      if (next.row === position.row && next.col === position.col) {
         return '';
       }
-      index = next;
+      position = next;
       render();
       return 'moved';
     }
-    if (action === 'select' && items[index]) {
-      var item = items[index];
+    var group = groups[position.row];
+    var item = group && group.items[position.col];
+    if (action === 'select' && item) {
       hide();
       item.run();
       return 'ran';

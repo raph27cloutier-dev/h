@@ -11,7 +11,7 @@
     locale: 'en-CA',
 
     // Tiles per row.
-    gridColumns: 6,
+    gridColumns: 8,
 
     // Where the TV's own control service is reached from the launcher, tried in order.
     // 127.0.0.1 is the TV itself; the second is this TV's address on your home network

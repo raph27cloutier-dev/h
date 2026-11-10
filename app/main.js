@@ -387,7 +387,7 @@
       .concat(inputs)
       .concat([
         { heading: 'My Home', label: 'Screen Saver', icon: 'saver', run: function () { L.screensaver.start(); } },
-        { label: 'Reload My Home', icon: 'reload', run: function () { root.location.reload(); } }
+        { label: 'Reload', icon: 'reload', run: function () { root.location.reload(); } }
       ]);
   }
 
