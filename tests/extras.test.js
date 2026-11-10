@@ -60,3 +60,18 @@ test('isNight covers the evening and early morning', () => {
   assert.equal(aerials.isNight(12), false);
   assert.equal(aerials.isNight(7), false);
 });
+
+const watcher = require('../app/watcher.js');
+
+test('watcher waits while the opened app is on screen', () => {
+  assert.equal(watcher.decide(true, true, 3), 'wait');
+});
+
+test('watcher looks around once the opened app has left the screen', () => {
+  assert.equal(watcher.decide(true, false, 3), 'look-around');
+});
+
+test('watcher gives the app time to appear, then gives up', () => {
+  assert.equal(watcher.decide(false, false, 3), 'wait');
+  assert.equal(watcher.decide(false, false, 12), 'give-up');
+});

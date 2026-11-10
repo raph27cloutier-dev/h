@@ -13,6 +13,9 @@
     // Tiles per row.
     gridColumns: 8,
 
+    // Come back to My Home when the app it opened is closed (TV app only).
+    returnHome: true,
+
     // Extra remote buttons My Home listens to when installed as a TV app.
     remoteKeys: ['MediaPlayPause', 'ColorF0Red'],
 

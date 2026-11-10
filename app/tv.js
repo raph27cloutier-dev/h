@@ -333,6 +333,32 @@
       });
   }
 
+  /** True when the TV says this app is the one on screen. */
+  function appVisible(appId) {
+    return discoverTvIp()
+      .then(function (ip) {
+        var host = ip || controlHosts()[0];
+        return request(baseUrl(host) + '/api/v2/applications/' + encodeURIComponent(appId), { method: 'GET' });
+      })
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (info) {
+        return Boolean(info && info.visible);
+      });
+  }
+
+  /** As a real TV app: puts My Home back on screen. */
+  function bringToFront() {
+    var api = tizenApi();
+    if (!api) {
+      return Promise.reject(new Error('not installed as a TV app'));
+    }
+    return askTv(function (resolve, reject) {
+      api.application.launch(api.application.getCurrentApplication().appInfo.id, resolve, reject);
+    });
+  }
+
   /** As a real TV app: asks the TV to send these extra remote keys to the page. */
   function registerKeys(names) {
     var api = tizenApi();
@@ -473,6 +499,8 @@
     envInfo: envInfo,
     listInstalled: listInstalled,
     launchApp: launchApp,
+    appVisible: appVisible,
+    bringToFront: bringToFront,
     registerKeys: registerKeys,
     appStatus: appStatus,
     showSource: showSource,

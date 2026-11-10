@@ -164,6 +164,9 @@
           previewNotice('open ' + tile.label);
           return;
         }
+        if (L.tv.onTv() && L.config.returnHome) {
+          L.watcher.follow(tile.appId, state.allTiles.map(function (item) { return item.appId; }));
+        }
         reportIfStillHere(tile, result);
       })
       .catch(function (error) {
