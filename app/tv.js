@@ -232,8 +232,49 @@
     });
   }
 
-  /** Resolves with { preview: true } on a computer, { preview: false } once the TV accepted the launch. */
-  function launchApp(appId) {
+  var LAUNCH_TYPES = ['DEEP_LINK', 'NATIVE_LAUNCH'];
+  var restRefused = false; // the TV refused the quick route once: do not wait on it again
+
+  /**
+   * Opens an app through the remote-control service, trying each launch type until the
+   * TV confirms. Resolves { confirmed, trace }; rejects when every type is refused.
+   */
+  function launchOverRemote(appId, onStep) {
+    return remoteHosts().then(function (hosts) {
+      var remote = root.Launcher.remote;
+      var trace = [];
+      if (!remote.hasToken(hosts)) {
+        onStep('Look at the TV: choose Allow if it asks about "My Home"');
+      }
+
+      function tryType(index) {
+        if (index >= LAUNCH_TYPES.length) {
+          return Promise.resolve({ confirmed: false, trace: trace });
+        }
+        var type = LAUNCH_TYPES[index];
+        return remote.launch(hosts, appId, type).then(
+          function (result) {
+            trace.push(type + ': ' + (result.answered ? 'OK' : 'no answer'));
+            return result.answered ? { confirmed: true, trace: trace } : tryType(index + 1);
+          },
+          function (error) {
+            trace.push(type + ': ' + ((error && error.message) || 'failed'));
+            return tryType(index + 1);
+          }
+        );
+      }
+
+      return tryType(0);
+    });
+  }
+
+  /**
+   * Resolves { preview: true } on a computer. On the TV resolves { preview: false,
+   * confirmed, trace }: `confirmed` is false when the TV never said the app opened.
+   * `onStep(text)` reports progress for the screen.
+   */
+  function launchApp(appId, onStep) {
+    var step = typeof onStep === 'function' ? onStep : function () {};
     var api = tizenApi();
     if (!api) {
       if (!looksLikeTv()) {
@@ -241,28 +282,30 @@
       }
       // The TV may refuse the quick route (HTTP 401 from its own browser); then use the
       // remote-control service, which asks the person to allow "My Home" once.
-      return launchOverNetwork(appId)
+      var quick = restRefused
+        ? Promise.reject(new Error('quick route refused earlier'))
+        : launchOverNetwork(appId);
+      return quick
         .then(function (host) {
-          return { preview: false, via: host };
+          return { preview: false, confirmed: true, trace: ['quick route OK at ' + host] };
         })
         .catch(function (restError) {
-          return remoteHosts()
-            .then(function (hosts) {
-              return root.Launcher.remote.launch(hosts, appId);
-            })
-            .then(function () {
-              return { preview: false, via: 'remote' };
-            })
-            .catch(function (remoteError) {
+          restRefused = true;
+          return launchOverRemote(appId, step).then(
+            function (result) {
+              return { preview: false, confirmed: result.confirmed, trace: result.trace };
+            },
+            function (remoteError) {
               throw new Error(restError.message + ' / remote: ' + remoteError.message);
-            });
+            }
+          );
         });
     }
     return askTv(function (resolve, reject) {
       api.application.launch(
         appId,
         function () {
-          resolve({ preview: false });
+          resolve({ preview: false, confirmed: true, trace: [] });
         },
         reject
       );

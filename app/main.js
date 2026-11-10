@@ -133,19 +133,37 @@
     saveRecent(recent);
   }
 
+  var STILL_HERE_CHECK_MS = 6000;
+  var LONG_MESSAGE_MS = 30000;
+
+  // The app did not come to the front: say so, with what the TV answered.
+  function reportIfStillHere(tile, result) {
+    setTimeout(function () {
+      if (document.hidden) {
+        return;
+      }
+      var details = (result.trace || []).join(', ') || 'no details';
+      L.view.toast(tile.label + ' did not open. The TV said: ' + details, LONG_MESSAGE_MS);
+    }, STILL_HERE_CHECK_MS);
+  }
+
   function openApp(tile) {
     rememberOpened(tile);
-    L.view.toast('Opening ' + tile.label + ' (' + tile.appId + ')');
+    L.view.toast('Opening ' + tile.label + '\u2026', LONG_MESSAGE_MS);
     L.tv
-      .launchApp(tile.appId)
+      .launchApp(tile.appId, function (text) {
+        L.view.toast(text, LONG_MESSAGE_MS);
+      })
       .then(function (result) {
         if (result.preview) {
           previewNotice('open ' + tile.label);
+          return;
         }
+        reportIfStillHere(tile, result);
       })
       .catch(function (error) {
         console.error('Launch failed', tile.appId, error);
-        L.view.toast('Could not open ' + tile.label + ' (' + describe(error) + ').', 15000);
+        L.view.toast('Could not open ' + tile.label + ' (' + describe(error) + ').', LONG_MESSAGE_MS);
       });
   }
 

@@ -188,19 +188,30 @@
     return { method: 'ms.channel.emit', params: params };
   }
 
-  /** Opens an installed app. Rejects if the TV answers with an error. */
-  function launch(hosts, appId) {
+  /**
+   * Asks the TV to open an installed app. `actionType` is 'DEEP_LINK' (web apps such as
+   * Netflix) or 'NATIVE_LAUNCH'. Resolves { answered } (false when the TV stayed silent);
+   * rejects if the TV answers with an error.
+   */
+  function launch(hosts, appId, actionType) {
     var reply = waitFor('ed.apps.launch', LAUNCH_REPLY_WAIT_MS);
-    return send(hosts, emit('ed.apps.launch', { appId: appId, action_type: 'DEEP_LINK' }))
+    return send(hosts, emit('ed.apps.launch', { appId: appId, action_type: actionType || 'DEEP_LINK', metaTag: '' }))
       .then(function () {
         return reply;
       })
       .then(function (message) {
-        // No reply is not an error: some TVs open the app without answering.
         if (message && message.data !== 200 && message.data !== '200') {
-          throw new Error('TV answered ' + JSON.stringify(message.data));
+          throw new Error('TV answered ' + JSON.stringify(message.data).slice(0, 80));
         }
+        return { answered: Boolean(message) };
       });
+  }
+
+  /** True when the TV has already allowed "My Home" at one of these addresses. */
+  function hasToken(hosts) {
+    return hosts.some(function (host) {
+      return readToken(host) !== '';
+    });
   }
 
   /** The TV's installed apps as { id, name, iconPath, show }. */
@@ -239,6 +250,7 @@
   root.Launcher = root.Launcher || {};
   root.Launcher.remote = {
     launch: launch,
+    hasToken: hasToken,
     installedApps: installedApps,
     pressKey: pressKey
   };
