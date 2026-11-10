@@ -17,7 +17,7 @@ var rules = require('../helper-rules.js');
 var HOME_ID = 'MyHomeTv01.MyHome';
 var TV_PORT = 8001;
 var STATUS_PORT = 8765;
-var CHECK_MS = 1000;
+var CHECK_MS = 250;
 var REPLY_TIMEOUT_MS = 3000;
 var OPEN_GRACE_MS = 12000; // an opened app gets this long to appear
 var RETRY_HOME_MS = 6000; // after opening My Home, wait before trying again
@@ -122,43 +122,63 @@ function goHome() {
   }
 }
 
-// Looks for a known app on screen, starting with the one seen last. `failed`: a check
-// did not get an answer, so nothing can be concluded.
-function scan(ids, index, failed) {
-  if (index >= ids.length) {
-    scanning = false;
-    if (!failed && rules.shouldScan(state, Date.now())) {
-      goHome();
-    }
+// Asks about several apps at once. done(visibleId, failed): the first id found on screen
+// (or ''), and whether a check got no answer, in which case nothing can be concluded.
+function findVisible(ids, done) {
+  var pending = ids.length;
+  var found = '';
+  var failed = false;
+  if (pending === 0) {
+    done('', false);
     return;
   }
-  isVisible(ids[index], function (error, visible) {
-    if (!error && visible) {
-      if (lastSeen !== ids[index]) {
-        note(ids[index] + ' is on screen');
+  ids.forEach(function (id) {
+    isVisible(id, function (error, visible) {
+      if (error) {
+        failed = true;
+        note('check failed: ' + error.message);
+      } else if (visible && !found) {
+        found = id;
       }
-      lastSeen = ids[index];
-      scanning = false;
-      return;
-    }
-    if (error) {
-      note('check failed: ' + error.message);
-    }
-    scan(ids, index + 1, failed || Boolean(error));
+      pending -= 1;
+      if (pending === 0) {
+        done(found, failed);
+      }
+    });
   });
 }
 
+function sawOnScreen(id) {
+  if (lastSeen !== id) {
+    note(id + ' is on screen');
+  }
+  lastSeen = id;
+}
+
+// Every tick: is the app seen last still on screen? Only when it is not are the other
+// known apps checked, all at once, so coming back to My Home takes a fraction of a second.
 function check() {
   if (scanning || known.length === 0 || !rules.shouldScan(state, Date.now())) {
     return;
   }
   scanning = true;
-  var ids = (lastSeen ? [lastSeen] : []).concat(
-    known.filter(function (id) {
-      return id !== lastSeen;
-    })
-  );
-  scan(ids, 0, false);
+  var others = known.filter(function (id) {
+    return id !== lastSeen;
+  });
+  findVisible(lastSeen ? [lastSeen] : [], function (stillThere, failedFirst) {
+    if (stillThere || failedFirst) {
+      scanning = false;
+      return;
+    }
+    findVisible(others, function (other, failed) {
+      scanning = false;
+      if (other) {
+        sawOnScreen(other);
+      } else if (!failed && rules.shouldScan(state, Date.now())) {
+        goHome();
+      }
+    });
+  });
 }
 
 function valuesOf(data, key) {
