@@ -47,6 +47,20 @@ body {
   z-index: 2;
 }
 
+.status {
+  display: none;
+  position: fixed;
+  top: 1.2vw;
+  left: var(--side-padding);
+  z-index: 3;
+  font-size: 0.95vw;
+  color: var(--text-dim);
+}
+
+.show-ids .status {
+  display: block;
+}
+
 .clock-time {
   font-size: 3.4vw;
   font-weight: 600;

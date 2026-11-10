@@ -13,6 +13,9 @@
     // Tiles per row.
     gridColumns: 6,
 
+    // Shows which app list is used and each app's id under its tile. Set to false when everything works.
+    showDebug: true,
+
     // Home screen apps, in order. Use the `key` values from the catalog below.
     // Apps that are not installed on the TV are skipped automatically.
     favourites: ['netflix', 'youtube', 'disney', 'prime', 'crave', 'toutv', 'appletv', 'spotify'],
@@ -29,18 +32,18 @@
     // `fallbackId` is only used if the TV refuses to give its app list; these ids are
     // best guesses and have not been checked on your TV.
     catalog: [
-      { key: 'netflix', label: 'Netflix', match: 'netflix', color: '#141414', text: '#e50914', fallbackId: 'org.tizen.netflix-app' },
+      { key: 'netflix', label: 'Netflix', match: 'netflix', color: '#141414', text: '#e50914', fallbackId: '3201907018807' },
       { key: 'youtubekids', label: 'YouTube Kids', match: 'youtube kids', color: '#ffffff', text: '#ff0000' },
       { key: 'youtubemusic', label: 'YouTube Music', match: 'youtube music', color: '#141414', text: '#ff0000' },
       { key: 'youtubetv', label: 'YouTube TV', match: 'youtube tv', color: '#ffffff', text: '#ff0000' },
-      { key: 'youtube', label: 'YouTube', match: 'youtube', color: '#ffffff', text: '#ff0000', fallbackId: '9Ur5IzDKqV.TizenYouTube' },
-      { key: 'disney', label: 'Disney+', match: 'disney', color: '#0b1a4a', text: '#ffffff', fallbackId: 'MCmYXNxgcu.DisneyPlus' },
-      { key: 'prime', label: 'Prime Video', match: 'prime video', color: '#0f79af', text: '#ffffff', fallbackId: 'org.tizen.primevideo' },
+      { key: 'youtube', label: 'YouTube', match: 'youtube', color: '#ffffff', text: '#ff0000', fallbackId: '111299001912' },
+      { key: 'disney', label: 'Disney+', match: 'disney', color: '#0b1a4a', text: '#ffffff', fallbackId: '3201901017640' },
+      { key: 'prime', label: 'Prime Video', match: 'prime video', color: '#0f79af', text: '#ffffff', fallbackId: '3201910019365' },
       { key: 'crave', label: 'Crave', match: 'crave', color: '#0c1c2c', text: '#00c8ff' },
       { key: 'toutv', label: 'Tou.tv', match: 'tou.tv', color: '#101820', text: '#ffffff' },
       { key: 'applemusic', label: 'Apple Music', match: 'apple music', color: '#fa2d48', text: '#ffffff' },
-      { key: 'appletv', label: 'Apple TV', match: 'apple tv', color: '#000000', text: '#ffffff' },
-      { key: 'spotify', label: 'Spotify', match: 'spotify', color: '#121212', text: '#1ed760', fallbackId: 'rJeHak5zRg.Spotify' },
+      { key: 'appletv', label: 'Apple TV', match: 'apple tv', color: '#000000', text: '#ffffff', fallbackId: '3201807016597' },
+      { key: 'spotify', label: 'Spotify', match: 'spotify', color: '#121212', text: '#1ed760', fallbackId: '3201606009684' },
       { key: 'plex', label: 'Plex', match: 'plex', color: '#1f2326', text: '#e5a00d' },
       { key: 'twitch', label: 'Twitch', match: 'twitch', color: '#9146ff', text: '#ffffff' },
       { key: 'browser', label: 'Internet', match: 'internet', color: '#2c2c2e', text: '#ffffff', fallbackId: 'org.tizen.browser' }

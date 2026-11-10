@@ -66,6 +66,7 @@
   }
 
   function openApp(tile) {
+    L.view.toast('Opening ' + tile.label + ' (' + tile.appId + ')');
     L.tv
       .launchApp(tile.appId)
       .then(function (result) {
@@ -159,8 +160,21 @@
     handleAction(action);
   }
 
-  function showTiles(rawInstalled) {
+  function setStatus(text) {
+    document.getElementById('status').textContent = text;
+  }
+
+  function showTiles(rawInstalled, source) {
     var installed = L.apps.normalizeInstalled(rawInstalled);
+    if (source === 'tv') {
+      setStatus(
+        installed.length > 0
+          ? 'TV app list: ' + installed.length + ' apps'
+          : 'TV gave an empty app list: using the built-in list'
+      );
+    } else {
+      setStatus('Built-in list (the TV did not share its apps)');
+    }
     var allTiles = L.apps.buildTiles(installed, L.config.catalog);
     var homeTiles = L.apps
       .pickFavourites(allTiles, L.config.favourites)
@@ -177,14 +191,19 @@
       L.view.updateClock(L.config.locale);
     }, CLOCK_REFRESH_MS);
     document.addEventListener('keydown', onKeyDown);
+    if (L.config.showDebug) {
+      document.body.classList.add('show-ids');
+    }
 
     L.tv
       .listInstalled(L.config.catalog)
-      .then(showTiles)
+      .then(function (raw) {
+        showTiles(raw, L.tv.onTv() ? 'tv' : 'builtin');
+      })
       .catch(function (error) {
         console.error('Could not read the installed apps', error);
-        showTiles([]);
-        L.view.toast('The TV did not share its app list; showing the built-in list instead.');
+        showTiles([], 'builtin');
+        L.view.toast('The TV did not share its app list (' + describe(error) + ').', 12000);
       });
   }
 
