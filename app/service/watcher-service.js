@@ -1,7 +1,10 @@
 /*
- * Background helper of the My Home TV app. The TV pauses the My Home page while another
- * app is on screen, so this small service does the watching: when the app My Home opened
- * is no longer on screen (and no other known app is), it puts My Home back in front.
+ * Background helper of the My Home TV app: makes My Home behave like the TV's hub.
+ * The TV pauses the My Home page while another app is on screen, so this service does
+ * the watching: whenever none of the known apps is on screen (an app was closed, the TV
+ * fell back to live TV...), it puts My Home back in front. The My Home page tells it
+ * what is going on (see helper-rules.js). The TV's own service says which app is on
+ * screen, and only for apps known by their store number.
  * Only when My Home asks for it (config.helperStatusPage), it also answers on STATUS_PORT
  * with its recent log, to check from a computer on the home network that it runs.
  */
@@ -9,21 +12,23 @@
 
 var http = require('http');
 var os = require('os');
-var decide = require('../watcher.js').decide;
+var rules = require('../helper-rules.js');
 
 var HOME_ID = 'MyHomeTv01.MyHome';
 var TV_PORT = 8001;
 var STATUS_PORT = 8765;
-var CHECK_MS = 2500;
-var REPLY_TIMEOUT_MS = 4000;
+var CHECK_MS = 1000;
+var REPLY_TIMEOUT_MS = 3000;
+var OPEN_GRACE_MS = 12000; // an opened app gets this long to appear
+var RETRY_HOME_MS = 6000; // after opening My Home, wait before trying again
 var MAX_LOG_LINES = 60;
 
 var log = [];
 var timer = null;
-var followed = '';
-var others = [];
-var seen = false;
-var checks = 0;
+var state = { homeFront: true, paused: false, stopped: false, graceUntil: 0 };
+var known = [];
+var lastSeen = '';
+var scanning = false;
 var statusServer = null;
 
 function note(text) {
@@ -43,6 +48,8 @@ function tvHosts() {
   });
   return found;
 }
+
+var workingHost = '';
 
 function askHost(host, appId, done) {
   var finished = false;
@@ -75,9 +82,13 @@ function askHost(host, appId, done) {
   request.on('error', finish);
 }
 
-/** done(error, visible): asks each of the TV's addresses until one answers. */
+/** done(error, visible): asks the TV address that worked last, then the others. */
 function isVisible(appId, done) {
-  var hosts = tvHosts();
+  var hosts = (workingHost ? [workingHost] : []).concat(
+    tvHosts().filter(function (host) {
+      return host !== workingHost;
+    })
+  );
   function tryHost(index, lastError) {
     if (index >= hosts.length) {
       done(lastError || new Error('no TV address'));
@@ -87,6 +98,7 @@ function isVisible(appId, done) {
       if (error) {
         tryHost(index + 1, error);
       } else {
+        workingHost = hosts[index];
         done(null, visible);
       }
     });
@@ -94,22 +106,13 @@ function isVisible(appId, done) {
   tryHost(0, null);
 }
 
-function stop() {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
-}
-
 function goHome() {
-  stop();
-  note('nothing known on screen: opening My Home');
+  note('no known app on screen: opening My Home');
+  state = { homeFront: false, paused: state.paused, stopped: state.stopped, graceUntil: Date.now() + RETRY_HOME_MS };
   try {
     tizen.application.launch(
       HOME_ID,
-      function () {
-        note('My Home opened');
-      },
+      function () {},
       function (error) {
         note('could not open My Home: ' + (error && error.message));
       }
@@ -119,54 +122,43 @@ function goHome() {
   }
 }
 
-// Another known app took over (opened from Samsung's bar): follow that one instead.
-function lookAround(index) {
-  if (index >= others.length) {
-    goHome();
+// Looks for a known app on screen, starting with the one seen last. `failed`: a check
+// did not get an answer, so nothing can be concluded.
+function scan(ids, index, failed) {
+  if (index >= ids.length) {
+    scanning = false;
+    if (!failed && rules.shouldScan(state, Date.now())) {
+      goHome();
+    }
     return;
   }
-  isVisible(others[index], function (error, visible) {
+  isVisible(ids[index], function (error, visible) {
     if (!error && visible) {
-      note('now following ' + others[index]);
-      followed = others[index];
+      if (lastSeen !== ids[index]) {
+        note(ids[index] + ' is on screen');
+      }
+      lastSeen = ids[index];
+      scanning = false;
       return;
     }
-    lookAround(index + 1);
+    if (error) {
+      note('check failed: ' + error.message);
+    }
+    scan(ids, index + 1, failed || Boolean(error));
   });
 }
 
 function check() {
-  checks += 1;
-  isVisible(followed, function (error, visible) {
-    if (error) {
-      note('check failed: ' + error.message);
-      return;
-    }
-    if (visible && !seen) {
-      note(followed + ' is on screen');
-    }
-    seen = seen || visible;
-    var step = decide(seen, visible, checks);
-    if (step === 'give-up') {
-      note(followed + ' never appeared: stopped');
-      stop();
-    } else if (step === 'look-around') {
-      note(followed + ' left the screen');
-      lookAround(0);
-    }
-  });
-}
-
-function follow(appId, knownIds) {
-  stop();
-  followed = appId;
-  others = knownIds.filter(function (id) {
-    return id && id !== appId && id !== HOME_ID;
-  });
-  seen = false;
-  checks = 0;
-  note('following ' + appId + ' (' + others.length + ' other known apps)');
-  timer = setInterval(check, CHECK_MS);
+  if (scanning || known.length === 0 || !rules.shouldScan(state, Date.now())) {
+    return;
+  }
+  scanning = true;
+  var ids = (lastSeen ? [lastSeen] : []).concat(
+    known.filter(function (id) {
+      return id !== lastSeen;
+    })
+  );
+  scan(ids, 0, false);
 }
 
 function valuesOf(data, key) {
@@ -185,7 +177,7 @@ function startStatusServer() {
   try {
     statusServer = http.createServer(function (request, response) {
       response.writeHead(200, { 'Content-Type': 'application/json' });
-      response.end(JSON.stringify({ following: timer ? followed : '', seen: seen, checks: checks, log: log }));
+      response.end(JSON.stringify({ state: state, known: known.length, lastSeen: lastSeen, log: log }));
     });
     statusServer.on('error', function (error) {
       note('status page unavailable: ' + error.message);
@@ -196,32 +188,48 @@ function startStatusServer() {
   }
 }
 
+function handleRequest(data) {
+  if (valuesOf(data, 'status')[0] === 'on') {
+    startStatusServer();
+  }
+  var ids = valuesOf(data, 'known').filter(function (id) {
+    return /^[0-9]+$/.test(id);
+  });
+  if (ids.length > 0) {
+    known = ids;
+  }
+  var message = valuesOf(data, 'cmd')[0] || '';
+  var openedId = valuesOf(data, 'id')[0] || '';
+  var opened = /^[0-9]+$/.test(openedId) ? openedId : '';
+  if (message === 'opened' && opened) {
+    lastSeen = opened;
+  }
+  state = rules.applyMessage(state, message, Date.now(), OPEN_GRACE_MS);
+  note(message + (opened ? ' ' + opened : ''));
+}
+
 module.exports.onStart = function () {
   note('helper started');
+  if (!timer) {
+    timer = setInterval(check, CHECK_MS);
+  }
 };
 
 module.exports.onRequest = function () {
   try {
     var requested = tizen.application.getCurrentApplication().getRequestedAppControl();
-    var data = (requested && requested.appControl && requested.appControl.data) || [];
-    if (valuesOf(data, 'status')[0] === 'on') {
-      startStatusServer();
-    }
-    var appId = valuesOf(data, 'follow')[0];
-    if (appId) {
-      follow(appId, valuesOf(data, 'known'));
-    } else {
-      note('request without an app to follow');
-    }
+    handleRequest((requested && requested.appControl && requested.appControl.data) || []);
   } catch (error) {
     note('bad request: ' + error.message);
   }
 };
 
-module.exports.onStop = function () {
-  stop();
-};
+function shutDown() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+}
 
-module.exports.onExit = function () {
-  stop();
-};
+module.exports.onStop = shutDown;
+module.exports.onExit = shutDown;

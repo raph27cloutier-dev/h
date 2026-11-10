@@ -13,8 +13,9 @@
     // Tiles per row.
     gridColumns: 8,
 
-    // Come back to My Home when the app it opened is closed (TV app only).
-    returnHome: true,
+    // Behave like the TV's hub (TV app only): My Home comes back whenever no known app is
+    // on screen, and Back on the home screen does not leave. Leave with Exit to TV.
+    alwaysHome: true,
 
     // TESTING ONLY: lets a computer on the home network read the helper's log on port 8765.
     // Set to false once coming back to My Home works.

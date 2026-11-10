@@ -61,17 +61,33 @@ test('isNight covers the evening and early morning', () => {
   assert.equal(aerials.isNight(7), false);
 });
 
-const watcher = require('../app/watcher.js');
+const rules = require('../app/helper-rules.js');
 
-test('watcher waits while the opened app is on screen', () => {
-  assert.equal(watcher.decide(true, true, 3), 'wait');
+const HOME = { homeFront: true, paused: false, stopped: false, graceUntil: 0 };
+
+test('helper stays quiet while My Home is on screen', () => {
+  assert.equal(rules.shouldScan(HOME, 1000), false);
 });
 
-test('watcher looks around once the opened app has left the screen', () => {
-  assert.equal(watcher.decide(true, false, 3), 'look-around');
+test('helper waits for an opened app to appear, then watches the screen', () => {
+  const opened = rules.applyMessage(HOME, 'opened', 1000, 12000);
+  assert.equal(rules.shouldScan(opened, 5000), false);
+  assert.equal(rules.shouldScan(opened, 13000), true);
 });
 
-test('watcher gives the app time to appear, then gives up', () => {
-  assert.equal(watcher.decide(false, false, 3), 'wait');
-  assert.equal(watcher.decide(false, false, 12), 'give-up');
+test('helper does not interrupt an app the TV cannot report on', () => {
+  const paused = rules.applyMessage(HOME, 'pause', 1000, 12000);
+  assert.equal(rules.shouldScan(paused, 99999), false);
+  assert.equal(rules.shouldScan(rules.applyMessage(rules.applyMessage(paused, 'front', 2000, 12000), 'back', 3000, 12000), 4000), true);
+});
+
+test('Exit to TV keeps the helper quiet until My Home is opened again', () => {
+  const stopped = rules.applyMessage(rules.applyMessage(HOME, 'stop', 1000, 12000), 'back', 1500, 12000);
+  assert.equal(rules.shouldScan(stopped, 99999), false);
+  assert.equal(rules.applyMessage(stopped, 'front', 2000, 12000).stopped, false);
+});
+
+test('applyMessage does not change the state it is given', () => {
+  rules.applyMessage(HOME, 'opened', 1000, 12000);
+  assert.deepEqual(HOME, { homeFront: true, paused: false, stopped: false, graceUntil: 0 });
 });

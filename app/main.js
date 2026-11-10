@@ -154,28 +154,41 @@
   }
 
   // The background helper watches the opened app; the page itself is the fallback.
-  // Only apps with a store number can be watched: the TV does not report the others.
-  function followOpenedApp(tile) {
-    var appId = tile.statusId || tile.appId;
-    if (!STORE_NUMBER.test(appId)) {
+  // "Always home": the background helper brings My Home back whenever no known app is
+  // on screen. Only apps with a store number can be seen by it.
+  function alwaysHome() {
+    return L.tv.onTv() && L.config.alwaysHome;
+  }
+
+  function tellHelper(message, id) {
+    if (!alwaysHome()) {
       return;
     }
     var known = state.allTiles
       .map(function (item) {
         return item.statusId;
       })
-      .filter(function (id) {
-        return STORE_NUMBER.test(id);
+      .filter(function (statusId) {
+        return STORE_NUMBER.test(statusId);
       });
-    L.tv.followInBackground(appId, known, L.config.helperStatusPage).catch(function (error) {
-      console.error('Background helper did not start', error);
-      L.watcher.follow(appId, known);
+    L.tv.tellHelper(message, { id: id, known: known, statusPage: L.config.helperStatusPage }).catch(function (error) {
+      console.error('Background helper did not answer', message, error);
     });
+  }
+
+  function tellHelperAppOpened(tile) {
+    var id = tile.statusId || tile.appId;
+    if (STORE_NUMBER.test(id)) {
+      tellHelper('opened', id);
+    } else {
+      tellHelper('pause');
+    }
   }
 
   function openApp(tile) {
     rememberOpened(tile);
     L.view.toast('Opening ' + tile.label + '\u2026', LONG_MESSAGE_MS);
+    tellHelperAppOpened(tile);
     L.tv
       .launchApp(tile.appId, function (text) {
         L.view.toast(text, LONG_MESSAGE_MS);
@@ -184,9 +197,6 @@
         if (result.preview) {
           previewNotice('open ' + tile.label);
           return;
-        }
-        if (L.tv.onTv() && L.config.returnHome) {
-          followOpenedApp(tile);
         }
         reportIfStillHere(tile, result);
       })
@@ -316,9 +326,12 @@
       setPillFocused(false);
       return;
     }
-    // Back on the home screen must always get you out of the launcher.
+    // Back on the home screen leaves the launcher, except as the TV's hub ("always home"):
+    // there, leaving is done with Exit to TV in Control Center.
     if (action === 'back' && state.screen === 'home' && !state.sourceShowing) {
-      L.tv.leaveApp();
+      if (!alwaysHome()) {
+        L.tv.leaveApp();
+      }
       return;
     }
     event.preventDefault();
@@ -437,7 +450,16 @@
       .concat([
         { heading: 'My Home', label: 'Screen Saver', icon: 'saver', run: function () { L.screensaver.start(); } },
         { label: 'Reload', icon: 'reload', run: function () { root.location.reload(); } }
+      ])
+      .concat(!alwaysHome() ? [] : [
+        { label: 'Exit to TV', icon: 'exit', run: exitToTv }
       ]);
+  }
+
+  // Leaves My Home for the TV's own screen; the helper stays quiet until My Home is opened again.
+  function exitToTv() {
+    tellHelper('stop');
+    setTimeout(L.tv.leaveApp, 400);
   }
 
   function openControl() {
@@ -450,6 +472,7 @@
 
   // Back from an app: the Recent row now includes it.
   function onVisibilityChange() {
+    tellHelper(document.hidden ? 'back' : 'front');
     if (!document.hidden && state.homeRows.length > 0) {
       renderHome();
     }
@@ -493,6 +516,7 @@
       .listInstalled(L.config.catalog)
       .then(function (raw) {
         showTiles(raw, L.tv.onTv() ? 'tv' : 'builtin');
+        tellHelper('front');
         if (!L.tv.onTv() && L.tv.looksLikeTv()) {
           loadRealAppsOverRemote();
         }

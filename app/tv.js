@@ -351,19 +351,22 @@
   var WATCHER_SERVICE_ID = 'MyHomeTv01.Watcher';
 
   /**
-   * As a real TV app: asks the background helper to watch `appId` and return to My Home
-   * when it closes. `knownIds` are other apps the person may switch to meanwhile.
+   * As a real TV app: sends a message to the background helper (see helper-rules.js).
+   * `options`: { id, known, statusPage }.
    */
-  function followInBackground(appId, knownIds, statusPage) {
+  function tellHelper(message, options) {
     var api = tizenApi();
     if (!api || !root.tizen || !root.tizen.ApplicationControl) {
       return Promise.reject(new Error('not installed as a TV app'));
     }
+    var settings = options || {};
     return askTv(function (resolve, reject) {
+      var Data = root.tizen.ApplicationControlData;
       var control = new root.tizen.ApplicationControl('http://tizen.org/appcontrol/operation/service', null, null, null, [
-        new root.tizen.ApplicationControlData('follow', [appId]),
-        new root.tizen.ApplicationControlData('known', knownIds.length ? knownIds : [appId]),
-        new root.tizen.ApplicationControlData('status', [statusPage ? 'on' : 'off'])
+        new Data('cmd', [message]),
+        new Data('id', [settings.id || '-']),
+        new Data('known', settings.known && settings.known.length ? settings.known : ['-']),
+        new Data('status', [settings.statusPage ? 'on' : 'off'])
       ]);
       api.application.launchAppControl(control, WATCHER_SERVICE_ID, resolve, reject);
     });
@@ -522,7 +525,7 @@
     launchApp: launchApp,
     appVisible: appVisible,
     bringToFront: bringToFront,
-    followInBackground: followInBackground,
+    tellHelper: tellHelper,
     registerKeys: registerKeys,
     appStatus: appStatus,
     showSource: showSource,
