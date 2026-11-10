@@ -11,6 +11,12 @@
   <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
   <tizen:privilege name="http://tizen.org/privilege/tv.window"/>
   <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:service id="MyHomeTv01.Watcher" auto-restart="false" on-boot="false">
+    <tizen:content src="service/watcher-service.js"/>
+    <tizen:name>MyHomeWatcher</tizen:name>
+    <tizen:description>Returns to My Home when the opened app closes</tizen:description>
+    <tizen:category name="http://tizen.org/category/service"/>
+  </tizen:service>
   <tizen:profile name="tv-samsung"/>
   <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="enable" encryption="disable" install-location="auto" hwkey-event="enable"/>
 </widget>

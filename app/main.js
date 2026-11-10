@@ -152,6 +152,19 @@
     }, STILL_HERE_CHECK_MS);
   }
 
+  // The background helper watches the opened app; the page itself is the fallback.
+  function followOpenedApp(appId) {
+    var known = state.allTiles
+      .map(function (item) {
+        return item.appId;
+      })
+      .filter(Boolean);
+    L.tv.followInBackground(appId, known).catch(function (error) {
+      console.error('Background helper did not start', error);
+      L.watcher.follow(appId, known);
+    });
+  }
+
   function openApp(tile) {
     rememberOpened(tile);
     L.view.toast('Opening ' + tile.label + '\u2026', LONG_MESSAGE_MS);
@@ -165,7 +178,7 @@
           return;
         }
         if (L.tv.onTv() && L.config.returnHome) {
-          L.watcher.follow(tile.appId, state.allTiles.map(function (item) { return item.appId; }));
+          followOpenedApp(tile.appId);
         }
         reportIfStillHere(tile, result);
       })

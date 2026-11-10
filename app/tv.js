@@ -348,6 +348,26 @@
       });
   }
 
+  var WATCHER_SERVICE_ID = 'MyHomeTv01.Watcher';
+
+  /**
+   * As a real TV app: asks the background helper to watch `appId` and return to My Home
+   * when it closes. `knownIds` are other apps the person may switch to meanwhile.
+   */
+  function followInBackground(appId, knownIds) {
+    var api = tizenApi();
+    if (!api || !root.tizen || !root.tizen.ApplicationControl) {
+      return Promise.reject(new Error('not installed as a TV app'));
+    }
+    return askTv(function (resolve, reject) {
+      var control = new root.tizen.ApplicationControl('http://tizen.org/appcontrol/operation/service', null, null, null, [
+        new root.tizen.ApplicationControlData('follow', [appId]),
+        new root.tizen.ApplicationControlData('known', knownIds.length ? knownIds : [appId])
+      ]);
+      api.application.launchAppControl(control, WATCHER_SERVICE_ID, resolve, reject);
+    });
+  }
+
   /** As a real TV app: puts My Home back on screen. */
   function bringToFront() {
     var api = tizenApi();
@@ -501,6 +521,7 @@
     launchApp: launchApp,
     appVisible: appVisible,
     bringToFront: bringToFront,
+    followInBackground: followInBackground,
     registerKeys: registerKeys,
     appStatus: appStatus,
     showSource: showSource,
