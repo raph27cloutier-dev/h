@@ -17,9 +17,9 @@
     // on screen, and Back on the home screen does not leave. Leave with Exit to TV.
     alwaysHome: true,
 
-    // Pressing Home while My Home is on screen closes Samsung's bar and stays on My Home.
-    // Use Exit to TV in Control Center to reach Samsung's own screen and settings.
-    homeButtonStaysHome: true,
+    // EXPERIMENTAL, off: pressing Home while My Home is on screen makes My Home come back
+    // in front of Samsung's bar. Not confirmed on a TV, and it reloads My Home each time.
+    homeButtonStaysHome: false,
 
     // TESTING ONLY: when true, a computer on the home network can read the helper's log
     // on port 8765 (it shows which apps are opened). Keep false in normal use.

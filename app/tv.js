@@ -361,7 +361,7 @@
 
   /**
    * As a real TV app: sends a message to the background helper (see helper-rules.js).
-   * `options`: { id, known, statusPage }.
+   * `options`: { id (store number), app (the app's own id), known, statusPage }.
    */
   function tellHelper(message, options) {
     var api = tizenApi();
@@ -374,6 +374,7 @@
       var control = new root.tizen.ApplicationControl('http://tizen.org/appcontrol/operation/service', null, null, null, [
         new Data('cmd', [message]),
         new Data('id', [settings.id || '-']),
+        new Data('app', [settings.app || '-']),
         new Data('known', settings.known && settings.known.length ? settings.known : ['-']),
         new Data('status', [settings.statusPage ? 'on' : 'off'])
       ]);

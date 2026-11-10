@@ -36,6 +36,7 @@
     pillFocused: false,
     leftSinceLaunch: false,
     exiting: false,
+    appOpenedAt: 0,
     // Inputs with something plugged in (all of them until the TV has answered).
     sources: L.config.sources,
     recent: loadRecent(),
@@ -164,7 +165,7 @@
     return L.tv.onTv() && L.config.alwaysHome;
   }
 
-  function tellHelper(message, id) {
+  function tellHelper(message, id, appId) {
     if (!alwaysHome()) {
       return;
     }
@@ -175,7 +176,7 @@
       .filter(function (statusId) {
         return STORE_NUMBER.test(statusId);
       });
-    L.tv.tellHelper(message, { id: id, known: known, statusPage: L.config.helperStatusPage }).catch(function (error) {
+    L.tv.tellHelper(message, { id: id, app: appId, known: known, statusPage: L.config.helperStatusPage }).catch(function (error) {
       console.error('Background helper did not answer', message, error);
     });
   }
@@ -183,15 +184,15 @@
   function tellHelperAppOpened(tile) {
     var id = tile.statusId || tile.appId;
     if (STORE_NUMBER.test(id)) {
-      tellHelper('opened', id);
+      tellHelper('opened', id, tile.appId);
     } else {
-      tellHelper('pause');
+      tellHelper('pause', '', tile.appId);
     }
   }
 
   function openApp(tile) {
     rememberOpened(tile);
-    update({ leftSinceLaunch: false });
+    update({ leftSinceLaunch: false, appOpenedAt: Date.now() });
     L.view.toast('Opening ' + tile.label + '\u2026', LONG_MESSAGE_MS);
     tellHelperAppOpened(tile);
     L.tv
@@ -489,7 +490,7 @@
   function onVisibilityChange() {
     tellHelper(document.hidden ? 'back' : 'front');
     if (!document.hidden) {
-      update({ exiting: false });
+      update({ exiting: false, appOpenedAt: 0 });
     }
     if (document.hidden) {
       update({ leftSinceLaunch: true });
@@ -504,16 +505,23 @@
   }
 
   var HOME_BAR_CHECK_MS = 120;
+  var APP_OPENING_MS = 20000;
+
+  // While an app My Home just opened is loading, My Home has lost the remote but is still
+  // on screen: that is not Samsung's bar.
+  function openingApp() {
+    return Date.now() - state.appOpenedAt < APP_OPENING_MS;
+  }
 
   // Samsung's Home bar opened over My Home (the page stays on screen but loses the
   // remote): as the TV's hub, come straight back in front. Apps cannot receive the Home
   // button itself.
   function onLostRemote() {
-    if (!alwaysHome() || !L.config.homeButtonStaysHome || state.exiting) {
+    if (!alwaysHome() || !L.config.homeButtonStaysHome || state.exiting || openingApp()) {
       return;
     }
     setTimeout(function () {
-      if (document.hidden || document.hasFocus() || state.exiting) {
+      if (document.hidden || document.hasFocus() || state.exiting || openingApp()) {
         return;
       }
       L.tv.bringToFront().catch(function (error) {

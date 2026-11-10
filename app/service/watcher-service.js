@@ -18,6 +18,7 @@ var HOME_ID = 'MyHomeTv01.MyHome';
 var TV_PORT = 8001;
 var STATUS_PORT = 8765;
 var CHECK_MS = 250;
+var EXIT_CHECK_MS = 60; // how often the list of running apps is read
 var REPLY_TIMEOUT_MS = 3000;
 var OPEN_GRACE_MS = 12000; // an opened app gets this long to appear
 var RETRY_HOME_MS = 6000; // after opening My Home, wait before trying again
@@ -30,9 +31,16 @@ var known = [];
 var lastSeen = '';
 var scanning = false;
 var statusServer = null;
+// The app My Home opened last, by its own id, and whether it has been seen running.
+var openedApp = '';
+var openedSeenRunning = false;
+var exitTimer = null;
+var readingApps = false;
+// True once the screen checks saw a known app other than the one My Home opened.
+var switchedApp = false;
 
 function note(text) {
-  log = log.concat([new Date().toISOString().slice(11, 19) + ' ' + text]).slice(-MAX_LOG_LINES);
+  log = log.concat([new Date().toISOString().slice(11, 23) + ' ' + text]).slice(-MAX_LOG_LINES);
 }
 
 /** The TV's own addresses: the internal one first, then its network ones. */
@@ -151,6 +159,7 @@ function findVisible(ids, done) {
 function sawOnScreen(id) {
   if (lastSeen !== id) {
     note(id + ' is on screen');
+    switchedApp = true;
   }
   lastSeen = id;
 }
@@ -191,6 +200,9 @@ function check() {
       scanning = false;
       return;
     }
+    if (lastSeen) {
+      note(lastSeen + ' left the screen');
+    }
     findVisible(others, function (other, failed) {
       scanning = false;
       if (other) {
@@ -200,6 +212,57 @@ function check() {
       }
     });
   });
+}
+
+// Most apps really close when you leave them. The list of running apps shows that at
+// once, for any app (no store number needed), so My Home can come back without waiting
+// for the TV's own service to report the screen. Apps that keep running in the
+// background (Netflix) are handled by the screen checks above.
+function watchForExit() {
+  if (!openedApp || readingApps || state.homeFront || state.stopped) {
+    return;
+  }
+  readingApps = true;
+  try {
+    tizen.application.getAppsContext(
+      function (contexts) {
+        readingApps = false;
+        var running = contexts.some(function (context) {
+          return context.appId === openedApp;
+        });
+        if (running) {
+          openedSeenRunning = true;
+          return;
+        }
+        if (!openedSeenRunning || state.homeFront || state.stopped) {
+          return;
+        }
+        note(openedApp + ' closed');
+        openedApp = '';
+        // The person stayed in the app My Home opened: go home at once. Only if the
+        // screen checks saw another known app since (switched from Samsung's bar) is
+        // the screen looked at first.
+        if (!switchedApp) {
+          state = { homeFront: false, paused: false, stopped: false, graceUntil: 0 };
+          goHome();
+          return;
+        }
+        findVisible(known, function (other) {
+          if (other) {
+            sawOnScreen(other);
+          } else if (!state.homeFront && !state.stopped) {
+            state = { homeFront: false, paused: false, stopped: false, graceUntil: 0 };
+            goHome();
+          }
+        });
+      },
+      function () {
+        readingApps = false;
+      }
+    );
+  } catch (error) {
+    readingApps = false;
+  }
 }
 
 function valuesOf(data, key) {
@@ -245,6 +308,15 @@ function handleRequest(data) {
   if (message === 'opened' && opened) {
     lastSeen = opened;
   }
+  var appId = valuesOf(data, 'app')[0] || '';
+  if ((message === 'opened' || message === 'pause') && appId && appId !== '-') {
+    openedApp = appId;
+    openedSeenRunning = false;
+    switchedApp = false;
+  }
+  if (message === 'front' || message === 'stop') {
+    openedApp = '';
+  }
   state = rules.applyMessage(state, message, Date.now(), OPEN_GRACE_MS);
   note(message + (opened ? ' ' + opened : ''));
 }
@@ -253,6 +325,7 @@ module.exports.onStart = function () {
   note('helper started');
   if (!timer) {
     timer = setInterval(check, CHECK_MS);
+    exitTimer = setInterval(watchForExit, EXIT_CHECK_MS);
   }
 };
 
@@ -268,7 +341,9 @@ module.exports.onRequest = function () {
 function shutDown() {
   if (timer) {
     clearInterval(timer);
+    clearInterval(exitTimer);
     timer = null;
+    exitTimer = null;
   }
 }
 
