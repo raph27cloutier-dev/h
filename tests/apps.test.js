@@ -105,3 +105,17 @@ test('initials gives a short wordmark fallback', () => {
   assert.equal(apps.initials('netflix'), 'N');
   assert.equal(apps.initials(''), '?');
 });
+
+test('accentFor uses the tile colour, or its text colour when the tile is very light', () => {
+  assert.equal(apps.accentFor({ color: '#e50914', text: '#ffffff' }), '#e50914');
+  assert.equal(apps.accentFor({ color: '#ffffff', text: '#ff0000' }), '#ff0000');
+  assert.equal(apps.accentFor({ color: '#f5f5f5' }), '#8e8e93');
+  assert.equal(apps.accentFor({}), '#8e8e93');
+  assert.equal(apps.accentFor({ color: 'red' }), '#8e8e93');
+});
+
+test('accentFor uses the text colour when the tile is almost black (Netflix, Spotify)', () => {
+  assert.equal(apps.accentFor({ color: '#141414', text: '#e50914' }), '#e50914');
+  assert.equal(apps.accentFor({ color: '#000000', text: '#ffffff' }), '#8e8e93');
+  assert.equal(apps.accentFor({ color: '#121212' }), '#8e8e93');
+});

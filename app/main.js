@@ -9,9 +9,9 @@
   // Replaced, never modified in place.
   var state = {
     screen: 'home',
-    homeTiles: [],
+    homeRows: [],
     allTiles: [],
-    focus: { home: 0, all: 0 },
+    focus: { home: { row: 0, col: 0 }, all: 0 },
     sourceShowing: false,
     switchingSource: false
   };
@@ -31,25 +31,48 @@
     state = next;
   }
 
-  function tilesFor(screen) {
-    return screen === 'home' ? state.homeTiles : state.allTiles;
+  function homeElement() {
+    return document.getElementById('home-rows');
   }
 
-  function gridFor(screen) {
-    return document.getElementById(screen === 'home' ? 'home-grid' : 'all-grid');
+  function allGrid() {
+    return document.getElementById('all-grid');
   }
 
-  function setFocusIndex(screen, index) {
+  function rowLengths() {
+    return state.homeRows.map(function (row) {
+      return row.tiles.length;
+    });
+  }
+
+  function focusedTile() {
+    if (state.screen === 'all') {
+      return state.allTiles[state.focus.all];
+    }
+    var row = state.homeRows[state.focus.home.row];
+    return row ? row.tiles[state.focus.home.col] : undefined;
+  }
+
+  function applyFocus() {
+    if (state.screen === 'all') {
+      L.view.setFocus(allGrid(), state.focus.all);
+      return;
+    }
+    L.view.setRowFocus(homeElement(), state.focus.home);
+    L.view.updateHero(focusedTile());
+  }
+
+  function setFocus(screen, value) {
     var focus = { home: state.focus.home, all: state.focus.all };
-    focus[screen] = index;
+    focus[screen] = value;
     update({ focus: focus });
-    L.view.setFocus(gridFor(screen), index);
+    applyFocus();
   }
 
   function goTo(screen) {
     update({ screen: screen });
     L.view.showScreen(screen);
-    L.view.setFocus(gridFor(screen), state.focus[screen]);
+    applyFocus();
   }
 
   function describe(error) {
@@ -141,17 +164,18 @@
       return;
     }
     var screen = state.screen;
-    var tiles = tilesFor(screen);
     if (action === 'select') {
-      select(tiles[state.focus[screen]]);
+      select(focusedTile());
     } else if (action === 'back') {
       if (screen === 'all') {
         goTo('home');
       }
     } else if (action === 'debug') {
       document.body.classList.toggle('show-ids');
+    } else if (screen === 'home') {
+      setFocus('home', L.nav.moveInRows(state.focus.home, action, rowLengths()));
     } else {
-      setFocusIndex(screen, L.nav.move(state.focus[screen], action, tiles.length, L.config.gridColumns));
+      setFocus('all', L.nav.move(state.focus.all, action, state.allTiles.length, L.config.gridColumns));
     }
   }
 
@@ -187,13 +211,20 @@
       setStatus('Preview: built-in app list');
     }
     var allTiles = L.apps.buildTiles(installed, L.config.catalog);
-    var homeTiles = L.apps
-      .pickFavourites(allTiles, L.config.favourites)
-      .concat(L.apps.sourceTiles(L.config.sources), [ALL_APPS_TILE]);
-    update({ allTiles: allTiles, homeTiles: homeTiles });
-    L.view.renderGrid(gridFor('home'), homeTiles);
-    L.view.renderGrid(gridFor('all'), allTiles);
-    goTo('home');
+    var homeRows = [
+      { title: 'Apps', tiles: L.apps.pickFavourites(allTiles, L.config.favourites).concat([ALL_APPS_TILE]) },
+      { title: 'Inputs', tiles: L.apps.sourceTiles(L.config.sources) }
+    ].filter(function (row) {
+      return row.tiles.length > 0;
+    });
+    update({ allTiles: allTiles, homeRows: homeRows });
+    L.view.renderRows(homeElement(), homeRows);
+    L.view.renderGrid(allGrid(), allTiles);
+    // Keep the focus valid when the list changes (the real list can arrive later).
+    var home = L.nav.moveInRows(state.focus.home, 'stay', rowLengths());
+    var all = Math.min(state.focus.all, Math.max(allTiles.length - 1, 0));
+    update({ focus: { home: home, all: all } });
+    goTo(state.screen);
   }
 
   // Inside TizenBrew: ask the TV's remote-control service for the real app list.
@@ -203,8 +234,10 @@
     L.tv
       .installedOverRemote()
       .then(function (raw) {
-        if (L.apps.normalizeInstalled(raw).length > 0) {
+        var count = L.apps.normalizeInstalled(raw).length;
+        if (count > 0) {
           showTiles(raw, 'remote');
+          L.view.toast('Loaded ' + count + ' apps from your TV.');
         }
       })
       .catch(function (error) {

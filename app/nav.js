@@ -54,7 +54,53 @@
     return current;
   }
 
-  var api = { move: move, actionForKey: actionForKey };
+  function nextFilledRow(rowLengths, from, step) {
+    for (var row = from + step; row >= 0 && row < rowLengths.length; row += step) {
+      if (rowLengths[row] > 0) {
+        return row;
+      }
+    }
+    return -1;
+  }
+
+  /** Brings a position inside the rows, landing on a row that has tiles. */
+  function clampPosition(position, rowLengths) {
+    var row = clamp(Math.floor(Number(position && position.row)) || 0, 0, rowLengths.length - 1);
+    if (!(rowLengths[row] > 0)) {
+      var below = nextFilledRow(rowLengths, row, 1);
+      row = below !== -1 ? below : nextFilledRow(rowLengths, row, -1);
+    }
+    var col = clamp(Math.floor(Number(position && position.col)) || 0, 0, rowLengths[row] - 1);
+    return { row: row, col: col };
+  }
+
+  /**
+   * Moves inside rows of different lengths (home screen): left/right stay in the row,
+   * up/down jump to the nearest row with tiles and keep the column where possible.
+   */
+  function moveInRows(position, direction, rowLengths) {
+    var lengths = Array.isArray(rowLengths) ? rowLengths : [];
+    if (nextFilledRow(lengths, -1, 1) === -1) {
+      return { row: 0, col: 0 };
+    }
+    var current = clampPosition(position, lengths);
+    if (direction === 'left') {
+      return { row: current.row, col: Math.max(current.col - 1, 0) };
+    }
+    if (direction === 'right') {
+      return { row: current.row, col: Math.min(current.col + 1, lengths[current.row] - 1) };
+    }
+    if (direction === 'up' || direction === 'down') {
+      var target = nextFilledRow(lengths, current.row, direction === 'up' ? -1 : 1);
+      if (target === -1) {
+        return current;
+      }
+      return { row: target, col: Math.min(current.col, lengths[target] - 1) };
+    }
+    return current;
+  }
+
+  var api = { move: move, moveInRows: moveInRows, actionForKey: actionForKey };
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;

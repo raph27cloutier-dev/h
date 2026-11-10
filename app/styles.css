@@ -1,11 +1,18 @@
-/* Sizes are in vw so the layout scales the same on 720p, 1080p and 4K TVs. */
+/*
+ * tvOS-inspired look. Sizes are in vw so the layout scales the same on 720p, 1080p
+ * and 4K TVs. Written for the TV's older Chromium: no flex `gap`, no backdrop-filter.
+ */
 :root {
+  --bg: #05060a;
   --text: #f5f5f7;
   --text-dim: rgba(245, 245, 247, 0.55);
-  --side-padding: 5.5vw;
-  --tile-width: 13.2vw;
-  --tile-gap: 0.82vw;
-  --tile-radius: 1.1vw;
+  --text-faint: rgba(245, 245, 247, 0.35);
+  --side: 5.5vw;
+  --tile-w: 15vw;
+  --tile-w-small: 11vw;
+  --tile-space: 1.5vw;
+  --radius: 1vw;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 * {
@@ -18,69 +25,148 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #05060a;
+  background: var(--bg);
   color: var(--text);
   font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'Samsung One', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-.wallpaper {
+/* ---------- Banner ("top shelf") ---------- */
+
+.hero {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background:
-    radial-gradient(60vw 45vw at 12% 8%, rgba(88, 86, 214, 0.55), transparent 70%),
-    radial-gradient(55vw 40vw at 88% 18%, rgba(10, 132, 255, 0.4), transparent 70%),
-    radial-gradient(70vw 45vw at 50% 110%, rgba(191, 90, 242, 0.35), transparent 70%),
-    linear-gradient(180deg, #0b0d1a 0%, #05060a 100%);
+  transition: opacity 400ms var(--ease);
 }
+
+.hero-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg);
+  opacity: 0;
+  transition: opacity 600ms var(--ease);
+}
+
+.hero-layer.is-visible {
+  opacity: 1;
+}
+
+.hero-text {
+  position: absolute;
+  left: var(--side);
+  top: 12.5vw;
+  max-width: 60vw;
+  transform: translateY(1vw);
+  transition: transform 600ms var(--ease);
+}
+
+.hero-layer.is-visible .hero-text {
+  transform: translateY(0);
+}
+
+.hero-title {
+  font-size: 6.4vw;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-shadow: 0 0.4vw 2.4vw rgba(0, 0, 0, 0.45);
+}
+
+.hero-subtitle {
+  margin-top: 1.2vw;
+  font-size: 1.45vw;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+/* Darkens the bottom so the rows stay readable over any colour. */
+.hero-fade {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 62%;
+  background: linear-gradient(180deg, rgba(5, 6, 10, 0) 0%, rgba(5, 6, 10, 0.82) 45%, var(--bg) 100%);
+}
+
+body[data-screen='all'] .hero {
+  opacity: 0.25;
+}
+
+body[data-screen='all'] .hero-text {
+  display: none;
+}
+
+/* ---------- Top bar ---------- */
 
 .topbar {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  padding: 3.2vw var(--side-padding) 0;
-  text-align: right;
-  z-index: 2;
-}
-
-.status {
-  display: none;
-  position: fixed;
-  top: 1.2vw;
-  left: var(--side-padding);
+  padding: 3vw var(--side) 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   z-index: 3;
-  font-size: 0.95vw;
-  color: var(--text-dim);
 }
 
-.show-ids .status {
-  display: block;
+.greeting {
+  font-size: 1.5vw;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding-top: 0.6vw;
+}
+
+body[data-screen='all'] .greeting {
+  visibility: hidden;
+}
+
+.clock {
+  text-align: right;
 }
 
 .clock-time {
-  font-size: 3.4vw;
+  font-size: 2.6vw;
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1;
 }
 
 .clock-date {
-  margin-top: 0.5vw;
-  font-size: 1.15vw;
+  margin-top: 0.45vw;
+  font-size: 1vw;
   color: var(--text-dim);
 }
+
+.status {
+  display: none;
+  position: fixed;
+  top: 0.8vw;
+  left: var(--side);
+  z-index: 4;
+  font-size: 0.9vw;
+  color: var(--text-faint);
+}
+
+.show-ids .status {
+  display: block;
+}
+
+/* ---------- Screens ---------- */
 
 .screen {
   display: none;
   position: fixed;
   left: 0;
   width: 100%;
-  padding: 0 calc(var(--side-padding) - var(--tile-gap));
-  z-index: 1;
+  z-index: 2;
 }
 
 .screen.is-active {
@@ -88,54 +174,90 @@ body {
 }
 
 .screen[data-screen='home'] {
-  bottom: 4vw;
+  bottom: 2.2vw;
 }
 
 .screen[data-screen='all'] {
-  top: 3.2vw;
+  top: 3vw;
   bottom: 0;
 }
 
-.screen-title {
-  margin: 0 var(--tile-gap) 1.2vw;
-  font-size: 2.4vw;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+/* ---------- Home rows ---------- */
+
+.row-title {
+  margin: 0 0 0 var(--side);
+  font-size: 1vw;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  transition: color 250ms var(--ease);
 }
 
-.grid {
-  display: flex;
-  flex-wrap: wrap;
+.row.is-active .row-title {
+  color: var(--text-dim);
 }
 
-.grid-scroll {
-  position: absolute;
-  top: 6.4vw;
-  bottom: 0;
-  left: calc(var(--side-padding) - var(--tile-gap));
-  right: calc(var(--side-padding) - var(--tile-gap));
+.row-viewport {
   overflow: hidden;
-  padding: 1.4vw 0 3vw;
-  align-content: flex-start;
+  padding: 1.8vw 0 1.4vw;
 }
+
+.row-track {
+  display: flex;
+  flex-wrap: nowrap;
+  padding-left: var(--side);
+  transition: transform 350ms var(--ease);
+}
+
+.row .tile {
+  width: var(--tile-w);
+  margin: 0 var(--tile-space) 0 0;
+}
+
+.row + .row .tile {
+  width: var(--tile-w-small);
+}
+
+/* tvOS shows the name only under the focused tile. */
+.row .tile-label {
+  opacity: 0;
+}
+
+.row .tile.is-focused .tile-label {
+  opacity: 1;
+}
+
+/* ---------- Tiles ---------- */
 
 .tile {
-  width: var(--tile-width);
-  margin: 1.1vw var(--tile-gap) 0.6vw;
   flex: none;
+  position: relative;
 }
 
 .tile-art {
   position: relative;
   width: 100%;
   padding-top: 56.25%;
-  border-radius: var(--tile-radius);
+  border-radius: var(--radius);
   overflow: hidden;
   color: #ffffff;
-  box-shadow: 0 0.6vw 1.6vw rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0.5vw 1.4vw rgba(0, 0, 0, 0.5);
   transition:
-    transform 160ms ease-out,
-    box-shadow 160ms ease-out;
+    transform 260ms var(--ease),
+    box-shadow 260ms var(--ease);
+}
+
+/* Soft top highlight, like a glass icon. */
+.tile-art::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
 }
 
 .tile-wordmark {
@@ -145,10 +267,14 @@ body {
   width: 84%;
   transform: translateY(-50%);
   text-align: center;
-  font-size: 1.65vw;
+  font-size: 1.8vw;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.05;
+}
+
+.row + .row .tile-wordmark {
+  font-size: 1.3vw;
 }
 
 .tile-icon {
@@ -164,23 +290,60 @@ body {
   display: none;
 }
 
+.tile-shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(105deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.28) 50%, rgba(255, 255, 255, 0) 100%);
+  transform: translateX(-170%);
+  pointer-events: none;
+}
+
+.tile.is-focused .tile-shine {
+  animation: shine 900ms var(--ease) 120ms 1 forwards;
+}
+
+@keyframes shine {
+  from {
+    transform: translateX(-170%);
+  }
+  to {
+    transform: translateX(230%);
+  }
+}
+
+.tile.is-focused .tile-art {
+  transform: translateY(-0.5vw) scale(1.12);
+  box-shadow:
+    0 0 0 0.18vw rgba(255, 255, 255, 0.85),
+    0 1.8vw 3.2vw rgba(0, 0, 0, 0.65);
+}
+
 .tile-label {
-  margin-top: 0.9vw;
+  margin-top: 1.2vw;
   text-align: center;
-  font-size: 1.05vw;
-  font-weight: 500;
+  font-size: 1.1vw;
+  font-weight: 600;
   color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: color 160ms ease-out;
+  transition:
+    opacity 220ms var(--ease),
+    color 220ms var(--ease);
+}
+
+.tile.is-focused .tile-label {
+  color: var(--text);
 }
 
 .tile-id {
   display: none;
   text-align: center;
   font-size: 0.7vw;
-  color: var(--text-dim);
+  color: var(--text-faint);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -190,33 +353,26 @@ body {
   display: block;
 }
 
-.tile.is-focused .tile-art {
-  transform: scale(1.12);
-  box-shadow:
-    0 0 0 0.22vw rgba(255, 255, 255, 0.9),
-    0 1.6vw 3vw rgba(0, 0, 0, 0.6);
+/* Input tiles: plain card with a small plug bar above the name. */
+.tile-source .tile-art {
+  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
 }
 
-.tile.is-focused .tile-label {
-  color: var(--text);
-}
-
-/* Input tiles: plain dark card with a small plug bar above the name. */
 .tile-source .tile-wordmark {
-  font-size: 1.3vw;
   font-weight: 600;
+  padding-top: 1.2vw;
 }
 
 .tile-source .tile-art::before {
   content: '';
   position: absolute;
-  top: 24%;
+  top: 26%;
   left: 50%;
-  width: 16%;
-  height: 7%;
-  margin-left: -8%;
+  width: 18%;
+  height: 8%;
+  margin-left: -9%;
   border-radius: 0.2vw;
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* "All Apps" tile: a 3 x 2 block of dots. */
@@ -238,6 +394,38 @@ body {
     3.2vw 1.6vw 0 #ffffff;
 }
 
+/* ---------- All Apps grid ---------- */
+
+.screen-title {
+  margin: 0 0 0 var(--side);
+  font-size: 2.6vw;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.grid-scroll {
+  position: absolute;
+  top: 5.2vw;
+  bottom: 0;
+  left: calc(var(--side) - 0.8vw);
+  right: calc(var(--side) - 0.8vw);
+  overflow: hidden;
+  padding: 1.6vw 0 4vw;
+  align-content: flex-start;
+}
+
+.grid .tile {
+  width: 13.2vw;
+  margin: 1.2vw 0.8vw 0.8vw;
+}
+
+/* ---------- Messages ---------- */
+
 .toast {
   position: fixed;
   left: 50%;
@@ -245,13 +433,13 @@ body {
   max-width: 70vw;
   padding: 0.8vw 1.6vw;
   border-radius: 2vw;
-  background: rgba(30, 30, 32, 0.92);
+  background: rgba(30, 30, 32, 0.94);
   font-size: 1.1vw;
   transform: translate(-50%, 6vw);
   opacity: 0;
   transition:
-    transform 200ms ease-out,
-    opacity 200ms ease-out;
+    transform 220ms var(--ease),
+    opacity 220ms var(--ease);
   z-index: 5;
 }
 
@@ -263,10 +451,11 @@ body {
 /* While an HDMI input is shown behind the page, get everything out of its way. */
 html.source-showing,
 html.source-showing body,
-html.source-showing .wallpaper {
+html.source-showing .hero-layer {
   background: transparent;
 }
 
+.source-showing .hero,
 .source-showing .topbar,
 .source-showing main {
   display: none;

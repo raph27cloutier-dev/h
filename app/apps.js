@@ -160,7 +160,42 @@
       .join('');
   }
 
+  var NEUTRAL_ACCENT = '#8e8e93';
+  var LIGHT_LIMIT = 0.8;
+  var DARK_LIMIT = 0.12;
+
+  /** Relative brightness 0..1 of a #rrggbb colour, or -1 if it is not one. */
+  function brightness(hex) {
+    var match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(hex));
+    if (!match) {
+      return -1;
+    }
+    var r = parseInt(match[1], 16);
+    var g = parseInt(match[2], 16);
+    var b = parseInt(match[3], 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  }
+
+  /**
+   * Glow colour for the banner behind a tile: its own colour, or its text colour
+   * when the tile is almost white (YouTube), or a neutral grey.
+   */
+  function accentFor(tile) {
+    var level = brightness(tile && tile.color);
+    var textLevel = brightness(tile && tile.text);
+    var textIsColourful = textLevel >= DARK_LIMIT && textLevel < LIGHT_LIMIT;
+    if (level >= DARK_LIMIT && level < LIGHT_LIMIT) {
+      return tile.color;
+    }
+    // Almost white (YouTube) or almost black (Netflix, Spotify): glow in the logo colour.
+    if (level >= 0 && textIsColourful) {
+      return tile.text;
+    }
+    return NEUTRAL_ACCENT;
+  }
+
   var api = {
+    accentFor: accentFor,
     normalizeInstalled: normalizeInstalled,
     buildTiles: buildTiles,
     pickFavourites: pickFavourites,

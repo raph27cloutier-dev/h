@@ -57,3 +57,30 @@ test('maps remote and keyboard key codes to actions', () => {
   assert.equal(nav.actionForKey(68), 'debug');
   assert.equal(nav.actionForKey(999), null);
 });
+
+test('moveInRows moves left and right inside a row and stops at its ends', () => {
+  const rows = [5, 3];
+  assert.deepEqual(nav.moveInRows({ row: 0, col: 1 }, 'right', rows), { row: 0, col: 2 });
+  assert.deepEqual(nav.moveInRows({ row: 0, col: 4 }, 'right', rows), { row: 0, col: 4 });
+  assert.deepEqual(nav.moveInRows({ row: 1, col: 0 }, 'left', rows), { row: 1, col: 0 });
+});
+
+test('moveInRows moves between rows and clamps to a shorter row', () => {
+  const rows = [5, 3];
+  assert.deepEqual(nav.moveInRows({ row: 0, col: 4 }, 'down', rows), { row: 1, col: 2 });
+  assert.deepEqual(nav.moveInRows({ row: 1, col: 1 }, 'up', rows), { row: 0, col: 1 });
+  assert.deepEqual(nav.moveInRows({ row: 0, col: 1 }, 'up', rows), { row: 0, col: 1 });
+  assert.deepEqual(nav.moveInRows({ row: 1, col: 1 }, 'down', rows), { row: 1, col: 1 });
+});
+
+test('moveInRows skips empty rows', () => {
+  assert.deepEqual(nav.moveInRows({ row: 0, col: 0 }, 'down', [2, 0, 3]), { row: 2, col: 0 });
+  assert.deepEqual(nav.moveInRows({ row: 2, col: 2 }, 'up', [2, 0, 3]), { row: 0, col: 1 });
+});
+
+test('moveInRows returns a safe position for bad input', () => {
+  assert.deepEqual(nav.moveInRows({ row: 9, col: 9 }, 'left', [4, 2]), { row: 1, col: 0 });
+  assert.deepEqual(nav.moveInRows(null, 'right', [3]), { row: 0, col: 1 });
+  assert.deepEqual(nav.moveInRows({ row: 0, col: 0 }, 'right', []), { row: 0, col: 0 });
+  assert.deepEqual(nav.moveInRows({ row: 0, col: 0 }, 'sideways', [3]), { row: 0, col: 0 });
+});

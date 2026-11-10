@@ -19,7 +19,7 @@
     controlHosts: ['127.0.0.1', '192.168.2.16'],
 
     // Shows which app list is used and each app's id under its tile. Set to false when everything works.
-    showDebug: true,
+    showDebug: false,
 
     // Home screen apps, in order. Use the `key` values from the catalog below.
     // Apps that are not installed on the TV are skipped automatically.

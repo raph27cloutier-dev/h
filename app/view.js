@@ -3,6 +3,7 @@
   'use strict';
 
   var apps = root.Launcher.apps;
+  var ROW_EDGE_PADDING_VW = 5.5;
 
   function element(tag, className, text) {
     var node = document.createElement(tag);
@@ -13,6 +14,12 @@
       node.textContent = text;
     }
     return node;
+  }
+
+  function clear(node) {
+    while (node.firstChild) {
+      node.removeChild(node.firstChild);
+    }
   }
 
   function iconUrl(iconPath) {
@@ -53,6 +60,7 @@
     if (tile.type === 'app' && tile.iconPath) {
       addIcon(art, tile);
     }
+    art.appendChild(element('span', 'tile-shine'));
     node.appendChild(art);
     node.appendChild(element('div', 'tile-label', tile.label));
     if (tile.appId) {
@@ -61,13 +69,28 @@
     return node;
   }
 
-  /** Replaces the contents of `container` with one node per tile. */
+  /** Grid screen (All Apps): one node per tile. */
   function renderGrid(container, tiles) {
-    while (container.firstChild) {
-      container.removeChild(container.firstChild);
-    }
+    clear(container);
     tiles.forEach(function (tile) {
       container.appendChild(createTile(tile));
+    });
+  }
+
+  /** Home screen: one titled, horizontally scrolling row per entry of `rows`. */
+  function renderRows(container, rows) {
+    clear(container);
+    rows.forEach(function (row) {
+      var section = element('section', 'row');
+      section.appendChild(element('h2', 'row-title', row.title));
+      var viewport = element('div', 'row-viewport');
+      var track = element('div', 'row-track');
+      row.tiles.forEach(function (tile) {
+        track.appendChild(createTile(tile));
+      });
+      viewport.appendChild(track);
+      section.appendChild(viewport);
+      container.appendChild(section);
     });
   }
 
@@ -77,8 +100,79 @@
       nodes[i].classList.toggle('is-focused', i === index);
     }
     if (nodes[index] && nodes[index].scrollIntoView) {
-      nodes[index].scrollIntoView({ block: 'nearest' });
+      nodes[index].scrollIntoView(false);
     }
+  }
+
+  /** Slides a row so its focused tile stays on screen, like the tvOS dock. */
+  function scrollRowTo(viewport, track, tileNode) {
+    var padding = (root.innerWidth * ROW_EDGE_PADDING_VW) / 100;
+    var shift = Number(track.getAttribute('data-shift')) || 0;
+    var left = tileNode.offsetLeft;
+    var right = left + tileNode.offsetWidth;
+    var visibleWidth = viewport.clientWidth;
+    if (right - shift > visibleWidth - padding) {
+      shift = right - (visibleWidth - padding);
+    }
+    if (left - shift < padding) {
+      shift = left - padding;
+    }
+    shift = Math.max(0, shift);
+    track.setAttribute('data-shift', String(shift));
+    track.style.transform = 'translateX(' + -shift + 'px)';
+  }
+
+  function setRowFocus(container, position) {
+    var rows = container.children;
+    for (var r = 0; r < rows.length; r += 1) {
+      var viewport = rows[r].querySelector('.row-viewport');
+      var track = rows[r].querySelector('.row-track');
+      rows[r].classList.toggle('is-active', r === position.row);
+      for (var c = 0; c < track.children.length; c += 1) {
+        var focused = r === position.row && c === position.col;
+        track.children[c].classList.toggle('is-focused', focused);
+        if (focused) {
+          scrollRowTo(viewport, track, track.children[c]);
+        }
+      }
+    }
+  }
+
+  function heroSubtitle(tile) {
+    if (tile.type === 'source') {
+      return 'Switch to ' + tile.label;
+    }
+    if (tile.type === 'all') {
+      return 'Every app on your TV';
+    }
+    return 'Press OK to open';
+  }
+
+  var heroFront = 0;
+  var heroKey = null;
+
+  /** Crossfades the big banner at the top to the focused tile. */
+  function updateHero(tile) {
+    if (!tile || tile.key === heroKey) {
+      return;
+    }
+    heroKey = tile.key;
+    var layers = document.querySelectorAll('.hero-layer');
+    if (layers.length < 2) {
+      return;
+    }
+    heroFront = 1 - heroFront;
+    var next = layers[heroFront];
+    var accent = apps.accentFor(tile);
+    next.style.backgroundImage =
+      'radial-gradient(70vw 42vw at 74% 36%, ' + accent + ' 0%, rgba(0,0,0,0) 70%),' +
+      'radial-gradient(48vw 30vw at 12% 8%, ' + accent + ' 0%, rgba(0,0,0,0) 75%)';
+    var title = next.querySelector('.hero-title');
+    title.textContent = tile.type === 'all' ? 'All Apps' : tile.label;
+    title.style.color = tile.type === 'app' && tile.text ? tile.text : '#ffffff';
+    next.querySelector('.hero-subtitle').textContent = heroSubtitle(tile);
+    layers[heroFront].classList.add('is-visible');
+    layers[1 - heroFront].classList.remove('is-visible');
   }
 
   function showScreen(name) {
@@ -86,6 +180,20 @@
     for (var i = 0; i < screens.length; i += 1) {
       screens[i].classList.toggle('is-active', screens[i].getAttribute('data-screen') === name);
     }
+    document.body.setAttribute('data-screen', name);
+  }
+
+  function greeting(hour) {
+    if (hour < 5) {
+      return 'Good night';
+    }
+    if (hour < 12) {
+      return 'Good morning';
+    }
+    if (hour < 18) {
+      return 'Good afternoon';
+    }
+    return 'Good evening';
   }
 
   function updateClock(locale) {
@@ -99,6 +207,7 @@
       month: 'long',
       day: 'numeric'
     });
+    document.getElementById('greeting').textContent = greeting(now.getHours());
   }
 
   var toastTimer = null;
@@ -117,7 +226,10 @@
 
   root.Launcher.view = {
     renderGrid: renderGrid,
+    renderRows: renderRows,
     setFocus: setFocus,
+    setRowFocus: setRowFocus,
+    updateHero: updateHero,
     showScreen: showScreen,
     updateClock: updateClock,
     toast: toast
