@@ -35,6 +35,7 @@
     switchingSource: false,
     pillFocused: false,
     leftSinceLaunch: false,
+    exiting: false,
     // Inputs with something plugged in (all of them until the TV has answered).
     sources: L.config.sources,
     recent: loadRecent(),
@@ -471,6 +472,7 @@
 
   // Leaves My Home for the TV's own screen; the helper stays quiet until My Home is opened again.
   function exitToTv() {
+    update({ exiting: true });
     tellHelper('stop');
     setTimeout(L.tv.leaveApp, 400);
   }
@@ -486,6 +488,9 @@
   // Back from an app: the Recent row now includes it.
   function onVisibilityChange() {
     tellHelper(document.hidden ? 'back' : 'front');
+    if (!document.hidden) {
+      update({ exiting: false });
+    }
     if (document.hidden) {
       update({ leftSinceLaunch: true });
     } else {
@@ -496,6 +501,25 @@
       renderHome();
       refreshSources();
     }
+  }
+
+  var HOME_BAR_CHECK_MS = 120;
+
+  // Samsung's Home bar opened over My Home (the page stays on screen but loses the
+  // remote): as the TV's hub, come straight back in front. Apps cannot receive the Home
+  // button itself.
+  function onLostRemote() {
+    if (!alwaysHome() || !L.config.homeButtonStaysHome || state.exiting) {
+      return;
+    }
+    setTimeout(function () {
+      if (document.hidden || document.hasFocus() || state.exiting) {
+        return;
+      }
+      L.tv.bringToFront().catch(function (error) {
+        console.error('Could not come back in front of the Home bar', error);
+      });
+    }, HOME_BAR_CHECK_MS);
   }
 
   // Only inputs with something plugged in get a tile.
@@ -543,6 +567,7 @@
     L.tv.registerKeys(L.config.remoteKeys);
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('visibilitychange', onVisibilityChange);
+    root.addEventListener('blur', onLostRemote);
     L.screensaver.init(function () {
       return !state.sourceShowing && !L.control.isOpen();
     });

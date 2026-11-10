@@ -305,13 +305,22 @@
         });
     }
     return askTv(function (resolve, reject) {
-      api.application.launch(
-        appId,
-        function () {
-          resolve({ preview: false, confirmed: true, trace: [] });
-        },
-        reject
-      );
+      function opened() {
+        resolve({ preview: false, confirmed: true, trace: [] });
+      }
+      function plainLaunch() {
+        api.application.launch(appId, opened, reject);
+      }
+      // Opened as a "child" of My Home, the TV comes back to My Home when the app closes
+      // instead of dropping to the last TV channel. If the TV refuses, open it normally.
+      try {
+        var control = new root.tizen.ApplicationControl(
+          'http://tizen.org/appcontrol/operation/default', null, null, null, [], 'GROUP'
+        );
+        api.application.launchAppControl(control, appId, opened, plainLaunch);
+      } catch (error) {
+        plainLaunch();
+      }
     });
   }
 

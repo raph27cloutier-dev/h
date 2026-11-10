@@ -157,8 +157,29 @@ function sawOnScreen(id) {
 
 // Every tick: is the app seen last still on screen? Only when it is not are the other
 // known apps checked, all at once, so coming back to My Home takes a fraction of a second.
+// An app that was just opened gets time to appear. As soon as it is on screen the wait
+// is over, so closing it right away still brings My Home back at once.
+function endGraceWhenOnScreen() {
+  var waiting = !state.homeFront && !state.paused && !state.stopped && Date.now() < state.graceUntil;
+  if (!waiting || !lastSeen) {
+    return;
+  }
+  scanning = true;
+  isVisible(lastSeen, function (error, visible) {
+    scanning = false;
+    if (!error && visible && Date.now() < state.graceUntil) {
+      note(lastSeen + ' is on screen');
+      state = { homeFront: state.homeFront, paused: state.paused, stopped: state.stopped, graceUntil: 0 };
+    }
+  });
+}
+
 function check() {
-  if (scanning || known.length === 0 || !rules.shouldScan(state, Date.now())) {
+  if (scanning || known.length === 0) {
+    return;
+  }
+  if (!rules.shouldScan(state, Date.now())) {
+    endGraceWhenOnScreen();
     return;
   }
   scanning = true;
