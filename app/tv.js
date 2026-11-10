@@ -115,7 +115,9 @@
   function listInstalled(catalog) {
     var api = tizenApi();
     if (!api) {
-      return Promise.resolve(previewApps(catalog));
+      // On a real TV without the tizen functions (inside TizenBrew), return no list so the
+      // catalog's real app ids are used. Fake "preview." ids are only for the computer.
+      return Promise.resolve(looksLikeTv() ? [] : previewApps(catalog));
     }
     return askTv(function (resolve, reject) {
       api.application.getAppsInfo(resolve, reject);
