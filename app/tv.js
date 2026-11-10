@@ -333,6 +333,21 @@
       });
   }
 
+  /** As a real TV app: asks the TV to send these extra remote keys to the page. */
+  function registerKeys(names) {
+    var api = tizenApi();
+    if (!api || !api.tvinputdevice) {
+      return;
+    }
+    names.forEach(function (name) {
+      try {
+        api.tvinputdevice.registerKey(name);
+      } catch (error) {
+        console.error('Could not register the remote key', name, error);
+      }
+    });
+  }
+
   function findSource(videoSources, wanted) {
     var connected = (videoSources && videoSources.connected) || [];
     for (var i = 0; i < connected.length; i += 1) {
@@ -458,6 +473,7 @@
     envInfo: envInfo,
     listInstalled: listInstalled,
     launchApp: launchApp,
+    registerKeys: registerKeys,
     appStatus: appStatus,
     showSource: showSource,
     hideSource: hideSource

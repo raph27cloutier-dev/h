@@ -13,6 +13,9 @@
     // Tiles per row.
     gridColumns: 8,
 
+    // Extra remote buttons My Home listens to when installed as a TV app.
+    remoteKeys: ['MediaPlayPause', 'ColorF0Red'],
+
     // Where the TV's own control service is reached from the launcher, tried in order.
     // 127.0.0.1 is the TV itself; the second is this TV's address on your home network
     // (change it if your router gives the TV a different one).

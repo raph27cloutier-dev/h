@@ -455,6 +455,7 @@
     setInterval(function () {
       L.view.updateClock(L.config.locale);
     }, CLOCK_REFRESH_MS);
+    L.tv.registerKeys(L.config.remoteKeys);
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('visibilitychange', onVisibilityChange);
     L.screensaver.init(function () {
