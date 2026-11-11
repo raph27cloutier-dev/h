@@ -5,7 +5,9 @@
   var apps = root.Launcher.apps;
   var ROW_EDGE_PADDING_VW = 5.5;
   // The TV caches files for a week; bump with each release that changes a logo.
-  var LOGO_VERSION = '?v=21';
+  var LOGO_VERSION = '?v=22';
+  var themes = root.Launcher.themes;
+  var currentTheme = themes.list[0];
 
   function element(tag, className, text) {
     var node = document.createElement(tag);
@@ -216,6 +218,28 @@
   var heroFront = 0;
   var heroKey = null;
 
+  // Loaded up front: otherwise the banner colour fills the screen while a new glow image loads.
+  var preloadedMasks = themes.list.map(function (theme) {
+    var image = new Image();
+    image.src = theme.mask + LOGO_VERSION;
+    return image;
+  });
+
+  /** Puts a theme (from themes.js) on the page. The banner is redrawn by the next updateHero. */
+  function applyTheme(theme) {
+    currentTheme = theme;
+    var variables = themes.cssVariables(theme);
+    Object.keys(variables).forEach(function (name) {
+      document.documentElement.style.setProperty(name, variables[name]);
+    });
+    document.documentElement.setAttribute('data-theme', theme.key);
+    var fade = document.querySelector('.hero-fade');
+    if (fade) {
+      fade.style.backgroundImage = "url('" + theme.mask + LOGO_VERSION + "')";
+    }
+    heroKey = null;
+  }
+
   /** Crossfades the big banner at the top to the focused tile. */
   function updateHero(tile) {
     if (!tile || tile.key === heroKey) {
@@ -230,7 +254,7 @@
     var next = layers[heroFront];
     var accent = apps.accentFor(tile);
     // A plain colour; the glow shape comes from the pre-drawn image above it (see styles.css).
-    next.style.backgroundColor = accent;
+    next.style.backgroundColor = currentTheme.heroColor || accent;
     var title = next.querySelector('.hero-title');
     title.textContent = tile.type === 'all' ? 'All Apps' : tile.label;
     title.style.color = tile.type === 'app' && tile.text ? tile.text : '#ffffff';
@@ -321,6 +345,7 @@
 
   root.Launcher.view = {
     setPillFocus: setPillFocus,
+    applyTheme: applyTheme,
     renderGrid: renderGrid,
     renderRows: renderRows,
     setFocus: setFocus,

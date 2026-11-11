@@ -27,7 +27,8 @@
     input: ['M3 5h18v12H3z', 'M8 21h8', 'M12 17v4'],
     saver: ['M2 19l7-9 5 6 3-4 5 7z', 'M17 5a2 2 0 1 0 0.01 0'],
     reload: ['M20 12a8 8 0 1 1-2.3-5.7', 'M20 4v5h-5'],
-    exit: ['M14 4h5v16h-5', 'M4 12h10', 'M10 8l4 4-4 4']
+    exit: ['M14 4h5v16h-5', 'M4 12h10', 'M10 8l4 4-4 4'],
+    theme: ['M12 3a9 9 0 1 0 0.01 0', 'M12 3v18', 'M12 7l6.5 0', 'M12 12l9 0', 'M12 17l6.5 0']
   };
 
   function icon(name) {
@@ -110,7 +111,7 @@
     });
   }
 
-  /** `entries`: [{label, icon, heading?, run()}]. */
+  /** `entries`: [{label, icon, heading?, keepOpen?, run()}]. */
   function show(entries) {
     groups = groupItems(entries);
     position = { row: 0, col: 0 };
@@ -119,6 +120,15 @@
     render();
     panel().classList.add('is-visible');
     document.body.classList.add('control-open');
+  }
+
+  /** Redraws with new entries (a label changed), keeping the selection where it is. */
+  function refresh(entries) {
+    if (!open) {
+      return;
+    }
+    groups = groupItems(entries);
+    render();
   }
 
   function hide() {
@@ -145,6 +155,10 @@
     }
     var group = groups[position.row];
     var item = group && group.items[position.col];
+    if (action === 'select' && item && item.keepOpen) {
+      item.run();
+      return 'ran';
+    }
     if (action === 'select' && item) {
       hide();
       item.run();
@@ -155,6 +169,7 @@
 
   L.control = {
     show: show,
+    refresh: refresh,
     hide: hide,
     handle: handle,
     isOpen: function () {

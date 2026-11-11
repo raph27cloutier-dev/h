@@ -7,6 +7,25 @@
   var ALL_APPS_TILE = { key: 'all-apps', label: 'All Apps', type: 'all', color: '#2c2c2e' };
   var RECENT_STORAGE_KEY = 'myhome.recent';
   var RECENT_MAX = 6;
+  var THEME_STORAGE_KEY = 'myhome.theme';
+
+  // The theme picked in Control Center, else the one in config.js.
+  function loadThemeKey() {
+    try {
+      return root.localStorage.getItem(THEME_STORAGE_KEY) || L.config.theme;
+    } catch (error) {
+      console.error('Could not read the saved theme', error);
+      return L.config.theme;
+    }
+  }
+
+  function saveThemeKey(key) {
+    try {
+      root.localStorage.setItem(THEME_STORAGE_KEY, key);
+    } catch (error) {
+      console.error('Could not save the theme', error);
+    }
+  }
 
   function loadRecent() {
     try {
@@ -40,6 +59,7 @@
     // Inputs with something plugged in (all of them until the TV has answered).
     sources: L.config.sources,
     recent: loadRecent(),
+    themeKey: L.themes.find(loadThemeKey()).key,
     installed: [],
     homeFocusPlaced: false
   };
@@ -469,7 +489,21 @@
       ])
       .concat(!alwaysHome() ? [] : [
         { label: 'Exit to TV', icon: 'exit', run: exitToTv }
+      ])
+      .concat([
+        { heading: 'Theme', label: L.themes.find(state.themeKey).label, icon: 'theme', keepOpen: true, run: nextTheme }
       ]);
+  }
+
+  // Theme button: each press shows the next look straight away; the panel stays open.
+  function nextTheme() {
+    var theme = L.themes.next(state.themeKey);
+    update({ themeKey: theme.key });
+    saveThemeKey(theme.key);
+    L.view.applyTheme(theme);
+    L.view.updateHero(focusedTile());
+    L.sound.select();
+    L.control.refresh(controlItems());
   }
 
   // Leaves My Home for the TV's own screen; the helper stays quiet until My Home is opened again.
@@ -579,6 +613,7 @@
   }
 
   function start() {
+    L.view.applyTheme(L.themes.find(state.themeKey));
     L.view.updateClock(L.config.locale);
     setInterval(function () {
       L.view.updateClock(L.config.locale);

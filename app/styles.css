@@ -18,7 +18,13 @@
   --tile-space: 1.5vw;
   --radius: 1.5vw;
   --glass: linear-gradient(150deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.07) 45%, rgba(255, 255, 255, 0.11) 100%);
-  --glass-solid: rgb(40, 40, 47);
+  --glass-solid: #28282f;
+  /* Set per theme (themes.js): selection colour, Control Center panel, corners, font. */
+  --accent: #ffffff;
+  --accent-ink: #000000;
+  --panel: #101116;
+  --radius-grid: 22.5%;
+  --font: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'Samsung One', Arial, sans-serif;
   --rim: 0.07vw solid rgba(255, 255, 255, 0.22);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -35,7 +41,7 @@ body {
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'Samsung One', Arial, sans-serif;
+  font-family: var(--font);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -366,7 +372,7 @@ body[data-screen='all'] .greeting {
 
 /* The selected tile lifts and its rim lights up. */
 .tile.is-focused .tile-art::after {
-  border: 0.2vw solid rgba(255, 255, 255, 0.92);
+  border: 0.2vw solid var(--accent);
 }
 
 .tile-label {
@@ -477,7 +483,7 @@ body[data-screen='all'] .greeting {
 
 .grid .tile-art {
   padding-top: 100%;
-  border-radius: 22.5%;
+  border-radius: var(--radius-grid);
 }
 
 .grid .tile-logo {
@@ -615,12 +621,12 @@ html.source-showing .hero-layer {
 }
 
 .control-pill.is-focused {
-  background: #ffffff;
+  background: var(--accent);
   transform: scale(1.15);
 }
 
 .control-pill.is-focused .pill-icon {
-  stroke: #000000;
+  stroke: var(--accent-ink);
 }
 
 /* ---------- Control Center panel (iOS style: glass modules, round buttons) ---------- */
@@ -634,7 +640,7 @@ html.source-showing .hero-layer {
   padding: 2vw 1.4vw;
   border-radius: 2.2vw;
   border: var(--rim);
-  background: rgb(16, 17, 22);
+  background: var(--panel);
   transform: translateX(32vw);
   opacity: 0;
   transition: transform 380ms var(--ease), opacity 300ms var(--ease);
@@ -738,8 +744,8 @@ html.source-showing .hero-layer {
 }
 
 .control-item.is-focused .control-circle {
-  background: #ffffff;
-  color: #000000;
+  background: var(--accent);
+  color: var(--accent-ink);
   transform: scale(1.12);
 }
 
@@ -827,22 +833,6 @@ html.source-showing .hero-layer {
   text-shadow: 0 0.2vw 1vw rgba(0, 0, 0, 0.5);
 }
 
-/* ---------- Real glass blur, where the browser supports it ---------- */
-
-@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .control-module,
-  .toast,
-  .control-pill {
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
-    backdrop-filter: blur(28px) saturate(180%);
-  }
-
-  .control-module,
-  .toast {
-    background: var(--glass), rgba(38, 38, 44, 0.45);
-  }
-}
-
 /* ---------- Welcome message when My Home opens ---------- */
 
 .welcome {
@@ -874,6 +864,7 @@ html.source-showing .hero-layer {
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
+  color: var(--accent);
   animation: welcome-in 700ms var(--ease) both;
 }
 
@@ -886,4 +877,15 @@ html.source-showing .hero-layer {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* ---------- Theme extras ---------- */
+
+html[data-theme='arcade'] .hero-title,
+html[data-theme='arcade'] .row-title,
+html[data-theme='arcade'] .screen-title,
+html[data-theme='arcade'] .greeting,
+html[data-theme='arcade'] .welcome-text {
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }

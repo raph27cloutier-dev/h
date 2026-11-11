@@ -10,6 +10,10 @@
     // Shown full screen for a moment each time My Home is opened. '' turns it off.
     welcomeMessage: 'Raph the best and the coolest',
 
+    // The look My Home starts with: 'classic', 'midnight', 'habs' or 'arcade' (see themes.js).
+    // Changing it in Control Center (Theme button) is remembered and wins over this.
+    theme: 'classic',
+
     // Clock language and format.
     locale: 'en-CA',
 
