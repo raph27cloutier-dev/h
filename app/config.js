@@ -17,6 +17,11 @@
     // on screen, and Back on the home screen does not leave. Leave with Exit to TV.
     alwaysHome: true,
 
+    // When an app closes, the TV shows its last input until My Home is back. With this
+    // on, My Home keeps that input on an empty HDMI port (a black screen) instead of
+    // "TV", which would start Samsung TV Plus. Turn off if you watch live TV on this TV.
+    blankFallback: true,
+
     // Pressing Home while My Home is on screen: My Home comes back in front of Samsung's
     // bar. Apps cannot receive the Home button itself, so the bar may flash briefly.
     // Use Exit to TV in Control Center to reach Samsung's own screen and settings.

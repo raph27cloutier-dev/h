@@ -11,6 +11,7 @@
   <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
   <tizen:privilege name="http://tizen.org/privilege/tv.window"/>
   <tizen:privilege name="http://tizen.org/privilege/tv.audio"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.channel"/>
   <tizen:privilege name="http://tizen.org/privilege/internet"/>
   <tizen:service id="MyHomeTv01.Watcher" auto-restart="false" on-boot="false">
     <tizen:content src="service/watcher-service.js"/>

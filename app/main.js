@@ -501,6 +501,7 @@
     if (!document.hidden && state.homeRows.length > 0) {
       renderHome();
       refreshSources();
+      keepBlankFallback();
     }
   }
 
@@ -527,6 +528,16 @@
       // Through the helper: asked from the page itself, the TV reloads My Home.
       tellHelper('bar');
     }, HOME_BAR_CHECK_MS);
+  }
+
+  // Keeps the TV from falling back to its live channel when an app closes (see tv.js).
+  function keepBlankFallback() {
+    if (!alwaysHome() || !L.config.blankFallback || state.sourceShowing) {
+      return;
+    }
+    L.tv.useBlankFallback().catch(function (error) {
+      console.error('Could not set the empty input as fallback', error);
+    });
   }
 
   // Only inputs with something plugged in get a tile.
@@ -588,6 +599,7 @@
         showTiles(raw, L.tv.onTv() ? 'tv' : 'builtin');
         tellHelper('front');
         refreshSources();
+        keepBlankFallback();
         if (!L.tv.onTv() && L.tv.looksLikeTv()) {
           loadRealAppsOverRemote();
         }

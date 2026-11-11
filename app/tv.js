@@ -446,6 +446,53 @@
     });
   }
 
+  /**
+   * As a real TV app: when the TV's own input is "TV", switches it to an HDMI port with
+   * nothing plugged in. With no antenna channels, a TV on "TV" starts Samsung TV Plus
+   * every time an app closes, which is slow and shows a live channel before My Home can
+   * come back. An empty input is just a black screen. Resolves 'switched', 'already'
+   * (not on TV), or 'none' (no empty HDMI port, or not a TV app).
+   */
+  function useBlankFallback() {
+    var api = tizenApi();
+    if (!api || !api.tvwindow || !api.systeminfo) {
+      return Promise.resolve('none');
+    }
+    var current = safely(function () {
+      return api.tvwindow.getSource(MAIN_WINDOW);
+    });
+    if (!current || current.type !== 'TV') {
+      return Promise.resolve('already');
+    }
+    return askTv(function (resolve, reject) {
+      api.systeminfo.getPropertyValue(
+        'VIDEOSOURCE',
+        function (videoSources) {
+          var empty = ((videoSources && videoSources.disconnected) || []).filter(function (source) {
+            return source.type === 'HDMI';
+          });
+          if (empty.length === 0) {
+            resolve('none');
+            return;
+          }
+          // The highest-numbered port: the one least likely to be used later.
+          var target = empty.reduce(function (best, source) {
+            return source.number > best.number ? source : best;
+          });
+          api.tvwindow.setSource(
+            target,
+            function () {
+              resolve('switched');
+            },
+            reject,
+            MAIN_WINDOW
+          );
+        },
+        reject
+      );
+    });
+  }
+
   /** As a real TV app: true when the TV's sound is muted. */
   function isMuted() {
     var api = tizenApi();
@@ -576,6 +623,7 @@
     listInstalled: listInstalled,
     launchApp: launchApp,
     connectedSources: connectedSources,
+    useBlankFallback: useBlankFallback,
     isMuted: isMuted,
     appVisible: appVisible,
     bringToFront: bringToFront,
