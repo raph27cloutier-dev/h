@@ -139,6 +139,7 @@
   }
 
   var STORE_NUMBER = /^[0-9]+$/;
+  var WELCOME_MS = 2600;
   var STILL_HERE_CHECK_MS = 6000;
   var LONG_MESSAGE_MS = 30000;
 
@@ -582,6 +583,9 @@
     setInterval(function () {
       L.view.updateClock(L.config.locale);
     }, CLOCK_REFRESH_MS);
+    if (L.config.welcomeMessage) {
+      L.view.showWelcome(L.config.welcomeMessage, WELCOME_MS);
+    }
     L.tv.registerKeys(L.config.remoteKeys);
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('visibilitychange', onVisibilityChange);

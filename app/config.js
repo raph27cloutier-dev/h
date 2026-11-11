@@ -7,6 +7,9 @@
   root.Launcher = root.Launcher || {};
 
   root.Launcher.config = {
+    // Shown full screen for a moment each time My Home is opened. '' turns it off.
+    welcomeMessage: 'Raph the best and the coolest',
+
     // Clock language and format.
     locale: 'en-CA',
 

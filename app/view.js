@@ -5,7 +5,7 @@
   var apps = root.Launcher.apps;
   var ROW_EDGE_PADDING_VW = 5.5;
   // The TV caches files for a week; bump with each release that changes a logo.
-  var LOGO_VERSION = '?v=20';
+  var LOGO_VERSION = '?v=21';
 
   function element(tag, className, text) {
     var node = document.createElement(tag);
@@ -297,6 +297,22 @@
     document.getElementById('toast').classList.remove('is-visible');
   }
 
+  var WELCOME_FADE_MS = 500;
+
+  /** Full-screen message when My Home opens; goes away by itself after `durationMs`. */
+  function showWelcome(message, durationMs) {
+    var node = document.getElementById('welcome');
+    document.getElementById('welcome-text').textContent = message;
+    node.classList.add('is-visible');
+    setTimeout(function () {
+      node.classList.add('is-leaving');
+      // Removed afterwards so it costs the TV nothing while browsing.
+      setTimeout(function () {
+        node.classList.remove('is-visible', 'is-leaving');
+      }, WELCOME_FADE_MS);
+    }, durationMs);
+  }
+
   /** The Control Center button next to the clock. */
   function setPillFocus(focused) {
     document.getElementById('control-pill').classList.toggle('is-focused', focused);
@@ -313,6 +329,7 @@
     showScreen: showScreen,
     updateClock: updateClock,
     toast: toast,
-    hideToast: hideToast
+    hideToast: hideToast,
+    showWelcome: showWelcome
   };
 })(window);
